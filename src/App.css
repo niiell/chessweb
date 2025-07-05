@@ -1,38 +1,171 @@
+/* src/App.css */
+
+:root {
+  --primary-bg: #282c34;
+  --secondary-bg: #3a3f47;
+  --text-color: #ffffff;
+  --accent-color: #61dafb;
+  --button-bg: #4a5058;
+  --button-hover-bg: #5a6068;
+  --border-color: #555;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--primary-bg);
+  color: var(--text-color);
+}
+
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.App-header h1 {
+  font-size: 2.5em;
+  color: var(--accent-color);
+  margin: 0;
+}
+
+.App-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1200px; /* Limit overall width */
+}
+
+.chessboard-container {
+  width: 480px; /* Explicitly set width for chessboard container */
+  height: 480px; /* Explicitly set height for chessboard container */
+  max-width: 100%;
+  max-height: 100%;
+  flex-shrink: 0;
+}
+
+.controls {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  gap: 15px;
+  background-color: var(--secondary-bg);
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  flex-grow: 1;
+  min-width: 300px; /* Minimum width for controls */
+  max-width: 500px;
 }
 
-.App-link {
-  color: #61dafb;
+.controls button {
+  background-color: var(--button-bg);
+  color: var(--text-color);
+  border: none;
+  padding: 12px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.controls button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+.fen-display {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fen-display label {
+  font-size: 0.9em;
+  color: var(--accent-color);
+}
+
+.fen-display input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background-color: var(--primary-bg);
+  color: var(--text-color);
+  font-size: 0.9em;
+  box-sizing: border-box;
+}
+
+.stockfish-output {
+  background-color: var(--primary-bg);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em;
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
+}
+
+.stockfish-output h3 {
+  margin-top: 0;
+  color: var(--accent-color);
+  font-size: 1.1em;
+}
+
+.stockfish-output pre {
+  margin: 0;
+  color: #ccc;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .App-body {
+    flex-direction: column;
+    align-items: center;
   }
-  to {
-    transform: rotate(360deg);
+
+  .chessboard-container {
+    width: 100%;
+    max-width: 400px; /* Smaller max width for mobile */
+  }
+
+  .controls {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .App-header h1 {
+    font-size: 2em;
+  }
+}
+
+@media (max-width: 480px) {
+  .App {
+    padding: 10px;
+  }
+
+  .controls {
+    padding: 15px;
+  }
+
+  .controls button {
+    padding: 10px 15px;
   }
 }
