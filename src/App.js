@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import './App.css';
@@ -7,41 +7,68 @@ function App() {
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
   const [boardOrientation, setBoardOrientation] = useState('white');
+  const [evaluation, setEvaluation] = useState('');
+  const [bestMove, setBestMove] = useState('');
+  const stockfishWorker = useRef(null);
+
+  useEffect(() => {
+    stockfishWorker.current = new Worker('StockfishWorker.js');
+    stockfishWorker.current.onmessage = (e) => {
+      const data = e.data;
+      if (data.startsWith('info depth')) {
+        const match = data.match(/score (cp|mate) (-?\d+)/);
+        if (match) {
+          const scoreType = match[1];
+          const scoreValue = parseInt(match[2], 10);
+          setEvaluation(scoreType === 'cp' ? `Evaluation: ${scoreValue / 100.0}` : `Mate in ${scoreValue}`);
+        }
+      } else if (data.startsWith('bestmove')) {
+        const move = data.split(' ')[1];
+        setBestMove(`Best move: ${move}`);
+      }
+    };
+
+    return () => {
+      stockfishWorker.current.terminate();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (stockfishWorker.current) {
+      stockfishWorker.current.postMessage(`position fen ${fen}`);
+      stockfishWorker.current.postMessage('go depth 15');
+    }
+  }, [fen]);
 
   console.log("Initial game object:", game);
   console.log("Initial FEN:", fen);
   console.log("Initial board orientation:", boardOrientation);
 
   function onDrop(sourceSquare, targetSquare) {
-    console.log(`onDrop called: ${sourceSquare} to ${targetSquare}`);
-    let moveResult = null;
+    let move = null;
     setGame((prevGame) => {
       const gameCopy = new Chess(prevGame.fen());
       try {
-        moveResult = gameCopy.move({
+        move = gameCopy.move({
           from: sourceSquare,
           to: targetSquare,
           promotion: 'q',
         });
 
-        if (moveResult === null) {
-          console.log("Invalid move. Returning previous game state.");
+        if (move === null) {
           return prevGame;
         }
 
-        console.log("Move successful. New FEN (inside setGame):", gameCopy.fen());
         setFen(gameCopy.fen());
         return gameCopy;
       } catch (e) {
-        console.error("Error during move in setGame:", e);
         return prevGame;
       }
     });
-    return moveResult !== null;
+    return move !== null;
   }
 
   const resetGame = () => {
-    console.log("Resetting game.");
     const newGame = new Chess();
     setGame(newGame);
     setFen(newGame.fen());
@@ -49,7 +76,6 @@ function App() {
   };
 
   const flipBoard = () => {
-    console.log("Flipping board.");
     setBoardOrientation((prevOrientation) =>
       prevOrientation === 'white' ? 'black' : 'white'
     );
@@ -85,6 +111,14 @@ function App() {
                 // Invalid FEN, do nothing or show error
               }
             }} />
+          </div>
+          <div className="evaluation-display">
+            <label>Evaluation:</label>
+            <span>{evaluation}</span>
+          </div>
+          <div className="best-move-display">
+            <label>Best Move:</label>
+            <span>{bestMove}</span>
           </div>
         </div>
       </div>
