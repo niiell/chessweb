@@ -10,6 +10,14 @@ function App() {
   const [boardOrientation, setBoardOrientation] = useState('white');
   const [evaluation, setEvaluation] = useState('');
   const [bestMove, setBestMove] = useState('');
+  const [pgn, setPgn] = useState('');
+  const [event, setEvent] = useState('');
+  const [site, setSite] = useState('');
+  const [date, setDate] = useState('');
+  const [round, setRound] = useState('');
+  const [white, setWhite] = useState('');
+  const [black, setBlack] = useState('');
+  const [result, setResult] = useState('*');
   const socket = useRef(null);
 
   // Initialize WebSocket connection and listen for Stockfish output
@@ -94,6 +102,10 @@ function App() {
     // No longer automatically send 'go depth 15' here, it will be triggered by button
   }, [fen]);
 
+  useEffect(() => {
+    setPgn(game.pgn());
+  }, [game]);
+
   console.log("Initial game object:", game);
   console.log("Initial FEN:", fen);
   console.log("Initial board orientation:", boardOrientation);
@@ -126,6 +138,7 @@ function App() {
     const newGame = new Chess();
     setGame(newGame);
     setFen(newGame.fen());
+    setPgn(newGame.pgn());
     setBoardOrientation('white');
   };
 
@@ -148,6 +161,26 @@ function App() {
       setFen(gameCopy.fen());
       return gameCopy;
     });
+  };
+
+  const loadPgn = () => {
+    const pgnInput = prompt("Enter PGN:");
+    if (pgnInput) {
+      try {
+        game.load_pgn(pgnInput);
+        setFen(game.fen());
+        setPgn(game.pgn());
+      } catch (error) {
+        console.error("Error loading PGN:", error);
+        alert("Invalid PGN. Please check the format.");
+      }
+    }
+  };
+
+  const copyPgn = () => {
+    setPgn(game.pgn());
+    navigator.clipboard.writeText(game.pgn());
+    alert("PGN copied to clipboard!");
   };
 
   return (
@@ -195,6 +228,8 @@ function App() {
             <label>Best Move:</label>
             <span>{bestMove}</span>
           </div>
+          <button onClick={loadPgn}>Load PGN</button>
+          <button onClick={copyPgn}>Copy PGN</button>
         </div>
       </div>
     </div>
