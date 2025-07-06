@@ -11,6 +11,13 @@ function App() {
   const [evaluation, setEvaluation] = useState('');
   const [bestMove, setBestMove] = useState('');
   const [pgn, setPgn] = useState('');
+  const [movetime, setMovetime] = useState(1000); // Default 1 second
+  const [multiPV, setMultiPV] = useState(1); // Default 1 principal variation
+  const [threads, setThreads] = useState(1); // Default 1 thread
+  const [hashSize, setHashSize] = useState(16); // Default 16 MB
+  const [moveClassification, setMoveClassification] = useState('');
+  const [rawEvaluation, setRawEvaluation] = useState(0);
+  const [squareStyles, setSquareStyles] = useState({});
   const [event, setEvent] = useState('');
   const [site, setSite] = useState('');
   const [date, setDate] = useState('');
@@ -19,6 +26,38 @@ function App() {
   const [black, setBlack] = useState('');
   const [result, setResult] = useState('*');
   const socket = useRef(null);
+
+  const sendCommandToBackend = async (command) => {
+    try {
+      const response = await fetch('http://localhost:3001/command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+      });
+      const data = await response.json();
+      console.log('Backend response:', data);
+    } catch (error) {
+      console.error('Error sending command to backend:', error);
+    }
+  };
+
+  const setStockfishOption = async (name, value) => {
+    try {
+      const response = await fetch('http://localhost:3001/set-option', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, value }),
+      });
+      const data = await response.json();
+      console.log('Stockfish option response:', data);
+    } catch (error) {
+      console.error('Error setting Stockfish option:', error);
+    }
+  };
 
   // Initialize WebSocket connection and listen for Stockfish output
   useEffect(() => {
@@ -35,6 +74,7 @@ function App() {
           const scoreType = data.score.type;
           const scoreValue = data.score.value;
           setEvaluation(scoreType === 'cp' ? `Evaluation: ${scoreValue / 100.0}` : `Mate in ${scoreValue}`);
+          setRawEvaluation(scoreValue);
         }
       } else if (data.type === 'bestmove') {
         // Calculate SAN for display
@@ -76,22 +116,6 @@ function App() {
     };
   }, []);
 
-  const sendCommandToBackend = async (command) => {
-    try {
-      const response = await fetch('http://localhost:3001/command', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ command }),
-      });
-      const data = await response.json();
-      console.log('Backend response:', data);
-    } catch (error) {
-      console.error('Error sending command to backend:', error);
-    }
-  };
-
   useEffect(() => {
     sendCommandToBackend('uci');
     sendCommandToBackend('isready');
@@ -103,6 +127,12 @@ function App() {
   }, [fen]);
 
   useEffect(() => {
+    setStockfishOption('MultiPV', multiPV);
+    setStockfishOption('Threads', threads);
+    setStockfishOption('Hash', hashSize);
+  }, []);
+
+  useEffect(() => {
     setPgn(game.pgn());
   }, [game]);
 
@@ -110,7 +140,76 @@ function App() {
   console.log("Initial FEN:", fen);
   console.log("Initial board orientation:", boardOrientation);
 
+  function classifyMove(prevEval, currentEval, isWhiteTurn) {
+    const evalChange = isWhiteTurn ? (currentEval - prevEval) / 100.0 : (prevEval - currentEval) / 100.0;
+
+    if (game.in_checkmate()) return "Checkmate";
+    if (game.in_draw()) return "Draw";
+    if (game.in_stalemate()) return "Stalemate";
+    if (game.in_threefold_repetition()) return "Threefold Repetition";
+    if (game.insufficient_material()) return "Insufficient Material";
+
+    // Check for book moves
+    const history = game.history({ verbose: true });
+    const lastMove = history[history.length - 1];
+    if (lastMove && lastMove.san.startsWith("O-O")) {
+        return "Book Move";
+    }
+
+
+    if (evalChange > 2) return "Brilliant";
+    if (evalChange > 1) return "Great Move";
+    if (evalChange > -0.5) return "Best Move";
+    if (evalChange > -1) return "Good Move";
+    if (evalChange > -2) return "Inaccuracy";
+    if (evalChange > -3) return "Mistake";
+    return "Blunder";
+  }
+
+  function getSquareStyles(classification, to) {
+    const style = {};
+    let icon = '';
+
+    switch (classification) {
+      case "Brilliant":
+        icon = 'brilliant.svg'; // Replace with your icon path
+        break;
+      case "Great Move":
+        icon = 'great-move.svg'; // Replace with your icon path
+        break;
+      case "Best Move":
+        icon = 'best-move.svg'; // Replace with your icon path
+        break;
+      case "Book Move":
+        icon = 'book-move.svg'; // Replace with your icon path
+        break;
+      case "Inaccuracy":
+        icon = 'inaccuracy.svg'; // Replace with your icon path
+        break;
+      case "Mistake":
+        icon = 'mistake.svg'; // Replace with your icon path
+        break;
+      case "Blunder":
+        icon = 'blunder.svg'; // Replace with your icon path
+        break;
+      default:
+        break;
+    }
+
+    if (icon) {
+      style[to] = {
+        backgroundImage: `url(${icon})`,
+        backgroundSize: 'cover',
+      };
+    }
+
+    return style;
+  }
+
   function onDrop(sourceSquare, targetSquare) {
+    const isWhiteTurn = game.turn() === "w";
+    const prevEval = rawEvaluation;
+
     let move = null;
     setGame((prevGame) => {
       const gameCopy = new Chess(prevGame.fen());
@@ -126,6 +225,17 @@ function App() {
         }
 
         setFen(gameCopy.fen());
+        sendCommandToBackend(`position fen ${gameCopy.fen()}`);
+        sendCommandToBackend(`go movetime 1000`);
+        socket.current.once('stockfish_output', (data) => {
+            if (data.type === 'info' && data.score) {
+                const currentEval = data.score.value;
+                const classification = classifyMove(prevEval, currentEval, isWhiteTurn);
+                setMoveClassification(classification);
+                setSquareStyles(getSquareStyles(classification, targetSquare));
+            }
+        });
+
         return gameCopy;
       } catch (e) {
         return prevGame;
@@ -149,7 +259,7 @@ function App() {
   };
 
   const calculateNextMove = () => {
-    sendCommandToBackend('go depth 15'); // Request best move from Stockfish
+    sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
   };
 
   const setTurn = (turn) => {
@@ -198,6 +308,7 @@ function App() {
             boardOrientation={boardOrientation}
             allowDrag={true}
             boardWidth={480}
+            customSquareStyles={squareStyles}
           />
         </div>
         <div className="controls">
@@ -228,8 +339,58 @@ function App() {
             <label>Best Move:</label>
             <span>{bestMove}</span>
           </div>
+          <div className="move-classification-display">
+            <label>Move Classification:</label>
+            <span>{moveClassification}</span>
+          </div>
           <button onClick={loadPgn}>Load PGN</button>
           <button onClick={copyPgn}>Copy PGN</button>
+          <div className="engine-options">
+            <label>Search Time (ms):</label>
+            <input
+              type="number"
+              value={movetime}
+              onChange={(e) => {
+                setMovetime(e.target.value);
+                setStockfishOption('Move Time', e.target.value);
+              }}
+              min="100"
+              step="100"
+            />
+            <label>MultiPV:</label>
+            <input
+              type="number"
+              value={multiPV}
+              onChange={(e) => {
+                setMultiPV(e.target.value);
+                setStockfishOption('MultiPV', e.target.value);
+              }}
+              min="1"
+              max="5"
+            />
+            <label>Threads:</label>
+            <input
+              type="number"
+              value={threads}
+              onChange={(e) => {
+                setThreads(e.target.value);
+                setStockfishOption('Threads', e.target.value);
+              }}
+              min="1"
+              max="8"
+            />
+            <label>Hash Size (MB):</label>
+            <input
+              type="number"
+              value={hashSize}
+              onChange={(e) => {
+                setHashSize(e.target.value);
+                setStockfishOption('Hash', e.target.value);
+              }}
+              min="1"
+              step="1"
+            />
+          </div>
         </div>
       </div>
     </div>
