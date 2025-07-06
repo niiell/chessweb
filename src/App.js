@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
+import { io } from 'socket.io-client';
 import './App.css';
 
 function App() {
@@ -9,35 +10,88 @@ function App() {
   const [boardOrientation, setBoardOrientation] = useState('white');
   const [evaluation, setEvaluation] = useState('');
   const [bestMove, setBestMove] = useState('');
-  const stockfishWorker = useRef(null);
+  const socket = useRef(null);
 
+  // Initialize WebSocket connection and listen for Stockfish output
   useEffect(() => {
-    stockfishWorker.current = new Worker('StockfishWorker.js');
-    stockfishWorker.current.onmessage = (e) => {
-      const data = e.data;
-      if (data.startsWith('info depth')) {
-        const match = data.match(/score (cp|mate) (-?\d+)/);
-        if (match) {
-          const scoreType = match[1];
-          const scoreValue = parseInt(match[2], 10);
+    socket.current = io('http://localhost:3001');
+
+    socket.current.on('connect', () => {
+      console.log('Connected to Stockfish backend via WebSocket');
+    });
+
+    socket.current.on('stockfish_output', (data) => {
+      console.log('Received Stockfish output:', data);
+      if (data.type === 'info') {
+        if (data.score) {
+          const scoreType = data.score.type;
+          const scoreValue = data.score.value;
           setEvaluation(scoreType === 'cp' ? `Evaluation: ${scoreValue / 100.0}` : `Mate in ${scoreValue}`);
         }
-      } else if (data.startsWith('bestmove')) {
-        const move = data.split(' ')[1];
-        setBestMove(`Best move: ${move}`);
+      } else if (data.type === 'bestmove') {
+        // Calculate SAN for display
+        setGame((prevGame) => {
+          const tempGame = new Chess(prevGame.fen()); // Use current FEN to create a temporary game
+          const moveObject = tempGame.move(data.move);
+          if (moveObject) {
+            setBestMove(`Best move: ${moveObject.san}`);
+          } else {
+            setBestMove(`Best move: ${data.move} (Invalid SAN conversion)`); // Fallback
+          }
+
+          // Automatically make the best move
+          const gameCopy = new Chess(prevGame.fen());
+          try {
+            const moveResult = gameCopy.move(data.move);
+            if (moveResult) {
+              setFen(gameCopy.fen());
+              return gameCopy;
+            }
+          } catch (e) {
+            console.error("Error making best move:", e);
+          }
+          return prevGame;
+        });
       }
-    };
+    });
+
+    socket.current.on('stockfish_error', (error) => {
+      console.error('Stockfish error:', error);
+    });
+
+    socket.current.on('stockfish_status', (status) => {
+      console.log('Stockfish status:', status);
+    });
 
     return () => {
-      stockfishWorker.current.terminate();
+      socket.current.disconnect();
     };
   }, []);
 
-  useEffect(() => {
-    if (stockfishWorker.current) {
-      stockfishWorker.current.postMessage(`position fen ${fen}`);
-      stockfishWorker.current.postMessage('go depth 15');
+  const sendCommandToBackend = async (command) => {
+    try {
+      const response = await fetch('http://localhost:3001/command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+      });
+      const data = await response.json();
+      console.log('Backend response:', data);
+    } catch (error) {
+      console.error('Error sending command to backend:', error);
     }
+  };
+
+  useEffect(() => {
+    sendCommandToBackend('uci');
+    sendCommandToBackend('isready');
+  }, []);
+
+  useEffect(() => {
+    sendCommandToBackend(`position fen ${fen}`);
+    // No longer automatically send 'go depth 15' here, it will be triggered by button
   }, [fen]);
 
   console.log("Initial game object:", game);
@@ -81,6 +135,21 @@ function App() {
     );
   };
 
+  const calculateNextMove = () => {
+    sendCommandToBackend('go depth 15'); // Request best move from Stockfish
+  };
+
+  const setTurn = (turn) => {
+    setGame((prevGame) => {
+      const gameCopy = new Chess(prevGame.fen());
+      const currentFen = gameCopy.fen().split(' ');
+      currentFen[1] = turn === 'white' ? 'w' : 'b';
+      gameCopy.load(currentFen.join(' '));
+      setFen(gameCopy.fen());
+      return gameCopy;
+    });
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -101,6 +170,12 @@ function App() {
         <div className="controls">
           <button onClick={resetGame}>New Game</button>
           <button onClick={flipBoard}>Flip Board</button>
+          <button onClick={calculateNextMove}>Calculate Next Move</button>
+          <div className="turn-options">
+            <label>Set Turn:</label>
+            <button onClick={() => setTurn('white')}>White to move</button>
+            <button onClick={() => setTurn('black')}>Black to move</button>
+          </div>
           <div className="fen-display">
             <label>FEN:</label>
             <input type="text" value={fen} onChange={(e) => {
