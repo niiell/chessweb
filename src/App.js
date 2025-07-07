@@ -69,7 +69,7 @@ function App() {
         if (data.score) {
           const scoreType = data.score.type;
           const scoreValue = data.score.value;
-          setEvaluation(scoreType === 'cp' ? `Evaluation: ${scoreValue / 100.0}` : `Mate in ${scoreValue}`);
+          setEvaluation(scoreType === 'cp' ? `${(scoreValue / 100.0).toFixed(1)}` : `M${scoreValue}`);
           setRawEvaluation(scoreValue);
         }
       } else if (data.type === 'bestmove') {
@@ -280,13 +280,45 @@ function App() {
     alert("PGN copied to clipboard!");
   };
 
+  // Calculate evaluation bar heights
+  let whiteHeight = 50;
+  let blackHeight = 50;
+
+  if (rawEvaluation !== null) {
+    if (evaluation.startsWith('M')) { // Mate score
+      if (rawEvaluation > 0) { // White is winning
+        whiteHeight = 100;
+        blackHeight = 0;
+      } else { // Black is winning
+        whiteHeight = 0;
+        blackHeight = 100;
+      }
+    } else { // Centipawn score
+      // Normalize centipawn score to a percentage. Max advantage around 1000 cp (10 pawns)
+      const normalizedScore = Math.max(-1000, Math.min(1000, rawEvaluation));
+      // Convert to a 0-100 scale where 0 is -1000cp, 50 is 0cp, 100 is 1000cp
+      whiteHeight = 50 + (normalizedScore / 20);
+      blackHeight = 100 - whiteHeight;
+    }
+  }
+
   return (
     <div className="App">
       <header className="App-header">
         
       </header>
       <div className="App-body">
-        <div className="chessboard-container">
+          <div className="evaluation-section">
+            <div className="evaluation-display">
+              <label>Evaluation:</label>
+              <span>{evaluation}</span>
+            </div>
+            <div className="evaluation-bar-container">
+              <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
+              <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
+            </div>
+          </div>
+          <div className="chessboard-container">
           {console.log("Rendering Chessboard with FEN:", fen, "and Orientation:", boardOrientation)}
           <Chessboard
             id="my-chessboard"
@@ -304,8 +336,10 @@ function App() {
         <div className="controls">
           <button onClick={resetGame}>New Game</button>
           <button onClick={flipBoard}>Flip Board</button>
-          <button onClick={undoMove}>Undo</button>
-          <button onClick={redoMove}>Redo</button>
+          <div className="history-controls">
+            <button onClick={undoMove}>Undo</button>
+            <button onClick={redoMove}>Redo</button>
+          </div>
           <button onClick={calculateNextMove}>Calculate Next Move</button>
           
           <div className="turn-options">
@@ -323,10 +357,6 @@ function App() {
                 // Invalid FEN, do nothing or show error
               }
             }} />
-          </div>
-          <div className="evaluation-display">
-            <label>Evaluation:</label>
-            <span>{evaluation}</span>
           </div>
           <div className="best-move-display">
             <label>Best Move:</label>
