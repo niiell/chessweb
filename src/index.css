@@ -1,13 +1,27 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Roboto', sans-serif; /* Using Roboto as a modern sans-serif font */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--primary-bg);
+  color: var(--text-color);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+:root {
+  --primary-bg: #202020; /* Dark charcoal */
+  --secondary-bg: #2c2c2c; /* Slightly lighter dark gray for panels */
+  --text-color: #e0e0e0; /* Off-white */
+  --accent-color: #007bff; /* Vibrant blue for accents */
+  --button-bg: #0056b3; /* Darker blue for buttons */
+  --button-hover-bg: #004085; /* Even darker blue on hover */
+  --border-color: #444444; /* Darker border color */
+  --input-bg: #3a3a3a; /* Input background */
+  --input-border: #555555; /* Input border */
+  --board-light-square: #eeeed2; /* Light square color */
+  --board-dark-square: #769656; /* Dark square color */
 }

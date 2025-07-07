@@ -261,7 +261,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Chess Analyzer</h1>
+        
       </header>
       <div className="App-body">
         <div className="chessboard-container">
@@ -272,8 +272,10 @@ function App() {
             onPieceDrop={onDrop}
             boardOrientation={boardOrientation}
             allowDrag={true}
-            boardWidth={480}
-            
+            boardWidth={560}
+            customDarkSquareStyle={{ backgroundColor: 'var(--board-dark-square)' }}
+            customLightSquareStyle={{ backgroundColor: 'var(--board-light-square)' }}
+            boardBorderRadius={8}
           />
         </div>
         <div className="controls">
