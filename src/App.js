@@ -314,6 +314,12 @@ function App() {
               <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
               <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
             </div>
+            <div className="game-action-buttons">
+              <button onClick={resetGame} title="New Game">🆕</button>
+              <button onClick={flipBoard} title="Flip Board">🔄</button>
+              <button onClick={undoMove} title="Undo">↩️</button>
+              <button onClick={redoMove} title="Redo">↪️</button>
+            </div>
           </div>
           <div className="chessboard-container">
           {console.log("Rendering Chessboard with FEN:", fen, "and Orientation:", boardOrientation)}
@@ -331,12 +337,6 @@ function App() {
           />
         </div>
         <div className="controls">
-          <button onClick={resetGame}>New Game</button>
-          <button onClick={flipBoard}>Flip Board</button>
-          <div className="history-controls">
-            <button onClick={undoMove}>Undo</button>
-            <button onClick={redoMove}>Redo</button>
-          </div>
           <button onClick={calculateNextMove}>Calculate Next Move</button>
           
           <div className="turn-options">
