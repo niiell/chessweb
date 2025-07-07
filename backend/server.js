@@ -1,34 +1,67 @@
-// Backend server for Stockfish communication
-
 const { spawn } = require('child_process');
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const { Chess } = require('chess.js');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "http://localhost:3000", // Allow your React app to connect
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
-const port = 3001; 
+const port = 3001;
 
-app.use(cors()); // Use CORS middleware
-app.use(express.json()); 
+app.use(cors());
+app.use(express.json());
 
-const STOCKFISH_PATH = '../stockfish/stockfish-windows-x86-64-avx2.exe'; 
+const STOCKFISH_PATH = '../stockfish/stockfish-windows-x86-64-avx2.exe';
 
 let stockfishProcess;
-let latestStockfishOutput = ''; 
-let outputBuffer = ''; // New buffer for incomplete lines
+let outputBuffer = '';
+const game = new Chess();
 
 function startStockfish() {
     stockfishProcess = spawn(STOCKFISH_PATH);
 
-    stockfishProcess.stdout.on('data', (data) => {        outputBuffer += data.toString(); // Add new data to buffer        const lines = outputBuffer.split('\n'); // Split by newline        outputBuffer = lines.pop(); // Keep the last (potentially incomplete) line in buffer        lines.forEach(line => {            const trimmedLine = line.trim();            if (!trimmedLine) return; // Skip empty lines            console.log(`Stockfish stdout (processed): ${trimmedLine}`); // Log processed line            latestStockfishOutput = trimmedLine;             // Parse Stockfish output and emit via WebSocket            if (trimmedLine.startsWith('info')) {                const matchScore = trimmedLine.match(/score (cp|mate) (-?\d+)/);                const matchPv = trimmedLine.match(/pv (.+)/);                const matchDepth = trimmedLine.match(/depth (\d+)/);                const parsedOutput = {                    type: 'info',                    raw: trimmedLine,                    score: matchScore ? { type: matchScore[1], value: parseInt(matchScore[2], 10) } : null,                    pv: matchPv ? matchPv[1].split(' ') : [],                    depth: matchDepth ? parseInt(matchDepth[1], 10) : null,                };                io.emit('stockfish_output', parsedOutput);                // If there's an active analysis promise, resolve it with the score                if (analysisResolve && matchScore) {                    analysisResolve({ score: parsedOutput.score });                    analysisResolve = null; // Clear the resolve function                    analysisReject = null; // Clear the reject function                }            } else if (trimmedLine.startsWith('bestmove')) {                const move = trimmedLine.split(' ')[1];                const ponder = trimmedLine.split(' ')[3] || null;                io.emit('stockfish_output', { type: 'bestmove', move, ponder, raw: trimmedLine });                console.log('Emitted bestmove via WebSocket:', { type: 'bestmove', move, ponder, raw: trimmedLine });            } else {                // For other outputs like 'uciok', 'readyok', etc.                io.emit('stockfish_output', { type: 'raw', raw: trimmedLine });            }        });    })
+    stockfishProcess.stdout.on('data', (data) => {
+        outputBuffer += data.toString();
+        const lines = outputBuffer.split('\n');
+        outputBuffer = lines.pop();
+        lines.forEach(line => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return;
+            console.log(`Stockfish stdout (processed): ${trimmedLine}`);
+            if (trimmedLine.startsWith('info')) {
+                const matchScore = trimmedLine.match(/score (cp|mate) (-?\d+)/);
+                const matchPv = trimmedLine.match(/pv (.+)/);
+                const matchDepth = trimmedLine.match(/depth (\d+)/);
+                const parsedOutput = {
+                    type: 'info',
+                    raw: trimmedLine,
+                    score: matchScore ? { type: matchScore[1], value: parseInt(matchScore[2], 10) } : null,
+                    pv: matchPv ? matchPv[1].split(' ') : [],
+                    depth: matchDepth ? parseInt(matchDepth[1], 10) : null,
+                };
+                io.emit('stockfish_output', parsedOutput);
+            } else if (trimmedLine.startsWith('bestmove')) {
+                const move = trimmedLine.split(' ')[1];
+                console.log(`[Backend] Current FEN before bestmove: ${game.fen()}`);
+                console.log(`[Backend] Bestmove received: ${move}`);
+                try {
+                    game.move(move, { sloppy: true });
+                    console.log(`[Backend] FEN after bestmove: ${game.fen()}`);
+                    io.emit('stockfish_output', { type: 'fen', fen: game.fen() });
+                } catch (e) {
+                    console.error(`[Backend] Error applying bestmove ${move}: ${e.message}`);
+                    io.emit('stockfish_error', `Error applying bestmove ${move}: ${e.message}`);
+                }
+            }
+        });
+    });
 
     stockfishProcess.stderr.on('data', (data) => {
         console.error(`Stockfish stderr: ${data}`);
@@ -46,11 +79,7 @@ function startStockfish() {
     });
 
     stockfishProcess.stdin.write('uci\n');
-    // Configure Syzygy Tablebases (YOU MUST REPLACE <PATH_TO_YOUR_SYZYGY_TABLEBASES>)
-    // Download Syzygy tablebases and place them in a directory, then provide the absolute path.
-    // Example: stockfishProcess.stdin.write('setoption name SyzygyPath value C:/Users/Admin/Documents/chessweb/syzygy_tablebases/\n');
-    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"
-`);
+    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"\n`);
     stockfishProcess.stdin.write('setoption name Use Syzygy value true\n');
     stockfishProcess.stdin.write('isready\n');
 }
@@ -58,6 +87,38 @@ function startStockfish() {
 app.post('/command', (req, res) => {
     const { command } = req.body;
     if (stockfishProcess && command) {
+        if (command.startsWith('position fen')) {
+            const fenStartIndex = command.indexOf('fen ') + 4;
+            let fen = command.substring(fenStartIndex);
+            let moves = '';
+
+            const movesKeywordIndex = fen.indexOf(' moves ');
+            if (movesKeywordIndex !== -1) {
+                moves = fen.substring(movesKeywordIndex + 7);
+                fen = fen.substring(0, movesKeywordIndex);
+            }
+            
+            try {
+                game.load(fen);
+            } catch (e) {
+                console.error(`[Backend] Error loading FEN "${fen}": ${e.message}`);
+                res.status(400).send({ message: `Invalid FEN: ${e.message}` });
+                return;
+            }
+            console.log(`[Backend] FEN loaded from frontend: ${fen}`);
+            if (moves) {
+                const moveArray = moves.split(' ');
+                moveArray.forEach(move => {
+                    try {
+                        game.move(move, { sloppy: true });
+                        console.log(`[Backend] Applied user move: ${move}. New FEN: ${game.fen()}`);
+                    } catch (e) {
+                        console.error(`[Backend] Error applying user move ${move}: ${e.message}`);
+                    }
+                });
+            }
+            io.emit('stockfish_output', { type: 'fen', fen: game.fen() });
+        }
         stockfishProcess.stdin.write(`${command}\n`);
         res.status(200).send({ message: 'Command sent to Stockfish' });
     } else {
@@ -65,56 +126,22 @@ app.post('/command', (req, res) => {
     }
 });
 
-let analysisResolve = null;
-let analysisReject = null;
-
-// New endpoint for move analysis
-app.post('/analyze-move', async (req, res) => {
-    const { fen, move } = req.body;
-
-    if (!stockfishProcess) {
-        return res.status(500).send({ error: 'Stockfish not running' });
-    }
-
-    // Clear previous analysis promises
-    analysisResolve = null;
-    analysisReject = null;
-
+app.post('/make-move', (req, res) => {
+    const { move, currentFen } = req.body;
     try {
-        // Set up a promise to wait for the analysis result
-        const analysisPromise = new Promise((resolve, reject) => {
-            analysisResolve = resolve;
-            analysisReject = reject;
-        });
-
-        // Send commands to Stockfish
-        stockfishProcess.stdin.write(`position fen ${fen} moves ${move}\n`);
-        stockfishProcess.stdin.write(`go depth 15\n`); // Request analysis after the move
-
-        const result = await analysisPromise;
-        res.status(200).send(result);
-    } catch (error) {
-        res.status(500).send({ error: error.message });
+        game.load(currentFen);
+        const result = game.move(move);
+        if (result) {
+            io.emit('stockfish_output', { type: 'fen', fen: game.fen() });
+            res.status(200).send({ success: true, newFen: game.fen() });
+        } else {
+            res.status(400).send({ error: 'Invalid move' });
+        }
+    } catch (e) {
+        console.error('Error making move:', e);
+        res.status(500).send({ error: e.message });
     }
 });
-
-app.post('/set-option', (req, res) => {
-    const { name, value } = req.body;
-    if (stockfishProcess && name && value !== undefined) {
-        stockfishProcess.stdin.write(`setoption name ${name} value ${value}\n`);
-        res.status(200).send({ message: `Option ${name} set to ${value}` });
-    } else {
-        res.status(400).send({ message: 'Invalid option name or value' });
-    }
-});
-
-// Modify stockfishProcess.stdout.on('data') to handle analysis responses
-// This part needs to be manually inserted into the existing stdout handler
-// within the startStockfish function.
-// I will provide the full updated startStockfish function in the next step.
-
-
-// No longer need a GET /output endpoint as we use WebSockets
 
 startStockfish();
 

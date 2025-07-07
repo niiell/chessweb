@@ -9,25 +9,21 @@ function App() {
   const [fen, setFen] = useState(game.fen());
   const [boardOrientation, setBoardOrientation] = useState('white');
   const [evaluation, setEvaluation] = useState('');
+  // eslint-disable-next-line no-unused-vars
+  const [rawEvaluation, setRawEvaluation] = useState(null);
   const [bestMove, setBestMove] = useState('');
-  const [pgn, setPgn] = useState('');
   const [movetime, setMovetime] = useState(1000); // Default 1 second
   const [multiPV, setMultiPV] = useState(1); // Default 1 principal variation
   const [threads, setThreads] = useState(1); // Default 1 thread
   const [hashSize, setHashSize] = useState(16); // Default 16 MB
-  const [moveClassification, setMoveClassification] = useState('');
-  const [rawEvaluation, setRawEvaluation] = useState(0);
-  const [squareStyles, setSquareStyles] = useState({});
-  const [event, setEvent] = useState('');
-  const [site, setSite] = useState('');
-  const [date, setDate] = useState('');
-  const [round, setRound] = useState('');
-  const [white, setWhite] = useState('');
-  const [black, setBlack] = useState('');
-  const [result, setResult] = useState('*');
+  
+  const [gameHistory, setGameHistory] = useState([game.fen()]);
+  const historyIndexRef = useRef(0);
+  const [historyIndex, setHistoryIndex] = useState(0); // This is just to trigger re-renders
+  
   const socket = useRef(null);
 
-  const sendCommandToBackend = async (command) => {
+  const sendCommandToBackend = React.useCallback(async (command) => {
     try {
       const response = await fetch('http://localhost:3001/command', {
         method: 'POST',
@@ -41,7 +37,7 @@ function App() {
     } catch (error) {
       console.error('Error sending command to backend:', error);
     }
-  };
+  }, []);
 
   const setStockfishOption = async (name, value) => {
     try {
@@ -77,28 +73,22 @@ function App() {
           setRawEvaluation(scoreValue);
         }
       } else if (data.type === 'bestmove') {
-        // Calculate SAN for display
+        setBestMove(`Best move: ${data.move}`);
+      } else if (data.type === 'fen') {
+        const newFen = data.fen;
         setGame((prevGame) => {
-          const tempGame = new Chess(prevGame.fen()); // Use current FEN to create a temporary game
-          const moveObject = tempGame.move(data.move);
-          if (moveObject) {
-            setBestMove(`Best move: ${moveObject.san}`);
-          } else {
-            setBestMove(`Best move: ${data.move} (Invalid SAN conversion)`); // Fallback
+          const gameCopy = new Chess(newFen);
+          setFen(newFen);
+          // Only update history if the FEN is different from the current one
+          if (prevGame.fen() !== newFen) {
+            setGameHistory((prevHistory) => {
+              const newHistory = prevHistory.slice(0, historyIndexRef.current + 1);
+              return [...newHistory, newFen];
+            });
+            historyIndexRef.current = historyIndexRef.current + 1;
+            setHistoryIndex(historyIndexRef.current);
           }
-
-          // Automatically make the best move
-          const gameCopy = new Chess(prevGame.fen());
-          try {
-            const moveResult = gameCopy.move(data.move);
-            if (moveResult) {
-              setFen(gameCopy.fen());
-              return gameCopy;
-            }
-          } catch (e) {
-            console.error("Error making best move:", e);
-          }
-          return prevGame;
+          return gameCopy;
         });
       }
     });
@@ -119,136 +109,115 @@ function App() {
   useEffect(() => {
     sendCommandToBackend('uci');
     sendCommandToBackend('isready');
-  }, []);
+  }, [sendCommandToBackend]);
 
   useEffect(() => {
     sendCommandToBackend(`position fen ${fen}`);
     // No longer automatically send 'go depth 15' here, it will be triggered by button
-  }, [fen]);
+  }, [fen, sendCommandToBackend]);
 
   useEffect(() => {
     setStockfishOption('MultiPV', multiPV);
     setStockfishOption('Threads', threads);
     setStockfishOption('Hash', hashSize);
-  }, []);
+  }, [multiPV, threads, hashSize]);
 
-  useEffect(() => {
-    setPgn(game.pgn());
-  }, [game]);
+  
+
+
+
+  const calculateNextMove = React.useCallback(() => {
+    sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
+  }, [movetime, sendCommandToBackend]);
+
+  
 
   console.log("Initial game object:", game);
   console.log("Initial FEN:", fen);
   console.log("Initial board orientation:", boardOrientation);
 
-  function classifyMove(prevEval, currentEval, isWhiteTurn) {
-    const evalChange = isWhiteTurn ? (currentEval - prevEval) / 100.0 : (prevEval - currentEval) / 100.0;
-
-    if (game.in_checkmate()) return "Checkmate";
-    if (game.in_draw()) return "Draw";
-    if (game.in_stalemate()) return "Stalemate";
-    if (game.in_threefold_repetition()) return "Threefold Repetition";
-    if (game.insufficient_material()) return "Insufficient Material";
-
-    // Check for book moves
-    const history = game.history({ verbose: true });
-    const lastMove = history[history.length - 1];
-    if (lastMove && lastMove.san.startsWith("O-O")) {
-        return "Book Move";
+  const undoMove = () => {
+    if (historyIndexRef.current > 0) {
+      const newIndex = historyIndexRef.current - 1;
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex); // Trigger re-render
+      const newFen = gameHistory[newIndex];
+      const gameCopy = new Chess(newFen);
+      setGame(gameCopy);
+      setFen(newFen);
     }
+  };
 
-
-    if (evalChange > 2) return "Brilliant";
-    if (evalChange > 1) return "Great Move";
-    if (evalChange > -0.5) return "Best Move";
-    if (evalChange > -1) return "Good Move";
-    if (evalChange > -2) return "Inaccuracy";
-    if (evalChange > -3) return "Mistake";
-    return "Blunder";
-  }
-
-  function getSquareStyles(classification, to) {
-    const style = {};
-    let icon = '';
-
-    switch (classification) {
-      case "Brilliant":
-        icon = 'brilliant.svg'; // Replace with your icon path
-        break;
-      case "Great Move":
-        icon = 'great-move.svg'; // Replace with your icon path
-        break;
-      case "Best Move":
-        icon = 'best-move.svg'; // Replace with your icon path
-        break;
-      case "Book Move":
-        icon = 'book-move.svg'; // Replace with your icon path
-        break;
-      case "Inaccuracy":
-        icon = 'inaccuracy.svg'; // Replace with your icon path
-        break;
-      case "Mistake":
-        icon = 'mistake.svg'; // Replace with your icon path
-        break;
-      case "Blunder":
-        icon = 'blunder.svg'; // Replace with your icon path
-        break;
-      default:
-        break;
+  const redoMove = () => {
+    if (historyIndexRef.current < gameHistory.length - 1) {
+      const newIndex = historyIndexRef.current + 1;
+      historyIndexRef.current = newIndex;
+      setHistoryIndex(newIndex); // Trigger re-render
+      const newFen = gameHistory[newIndex];
+      const gameCopy = new Chess(newFen);
+      setGame(gameCopy);
+      setFen(newFen);
     }
-
-    if (icon) {
-      style[to] = {
-        backgroundImage: `url(${icon})`,
-        backgroundSize: 'cover',
-      };
-    }
-
-    return style;
-  }
+  };
 
   function onDrop(sourceSquare, targetSquare) {
-    const isWhiteTurn = game.turn() === "w";
-    const prevEval = rawEvaluation;
+    const gameCopy = new Chess(fen);
+    const piece = gameCopy.get(sourceSquare);
 
-    let move = null;
-    setGame((prevGame) => {
-      const gameCopy = new Chess(prevGame.fen());
-      try {
-        move = gameCopy.move({
-          from: sourceSquare,
-          to: targetSquare,
-          promotion: 'q',
-        });
+    const move = {
+      from: sourceSquare,
+      to: targetSquare,
+    };
 
-        if (move === null) {
-          return prevGame;
+    // Only add promotion if it's a pawn move to the last rank
+    if (piece && piece.type === 'p' &&
+        ((piece.color === 'w' && targetSquare[1] === '8') ||
+         (piece.color === 'b' && targetSquare[1] === '1'))) {
+      move.promotion = 'q'; // Default to queen promotion
+    }
+
+    // Send the move to the backend for validation and application
+    fetch('http://localhost:3001/make-move', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ move, currentFen: fen }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          console.error('Error making move:', data.error);
+          alert(`Invalid move: ${data.error}`);
+        } else {
+          // Update game state and history immediately after a successful move
+          const newGame = new Chess(data.newFen);
+          setGame(newGame);
+          setFen(newGame.fen());
+
+          setGameHistory((prevHistory) => {
+            const newHistory = prevHistory.slice(0, historyIndexRef.current + 1);
+            return [...newHistory, newGame.fen()];
+          });
+          historyIndexRef.current = historyIndexRef.current + 1;
+          setHistoryIndex(historyIndexRef.current);
         }
+      })
+      .catch(error => {
+        console.error('Error sending move to backend:', error);
+        alert('Error communicating with backend.');
+      });
 
-        setFen(gameCopy.fen());
-        sendCommandToBackend(`position fen ${gameCopy.fen()}`);
-        sendCommandToBackend(`go movetime 1000`);
-        socket.current.once('stockfish_output', (data) => {
-            if (data.type === 'info' && data.score) {
-                const currentEval = data.score.value;
-                const classification = classifyMove(prevEval, currentEval, isWhiteTurn);
-                setMoveClassification(classification);
-                setSquareStyles(getSquareStyles(classification, targetSquare));
-            }
-        });
-
-        return gameCopy;
-      } catch (e) {
-        return prevGame;
-      }
-    });
-    return move !== null;
+    return true; // Always return true, as the backend will handle the move
   }
 
   const resetGame = () => {
     const newGame = new Chess();
     setGame(newGame);
     setFen(newGame.fen());
-    setPgn(newGame.pgn());
+    setGameHistory([newGame.fen()]); // Reset game history
+    historyIndexRef.current = 0; // Reset history index ref
+    setHistoryIndex(0); // Trigger re-render for history index
     setBoardOrientation('white');
   };
 
@@ -258,9 +227,7 @@ function App() {
     );
   };
 
-  const calculateNextMove = () => {
-    sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
-  };
+
 
   const setTurn = (turn) => {
     setGame((prevGame) => {
@@ -279,7 +246,6 @@ function App() {
       try {
         game.load_pgn(pgnInput);
         setFen(game.fen());
-        setPgn(game.pgn());
       } catch (error) {
         console.error("Error loading PGN:", error);
         alert("Invalid PGN. Please check the format.");
@@ -288,7 +254,6 @@ function App() {
   };
 
   const copyPgn = () => {
-    setPgn(game.pgn());
     navigator.clipboard.writeText(game.pgn());
     alert("PGN copied to clipboard!");
   };
@@ -308,13 +273,16 @@ function App() {
             boardOrientation={boardOrientation}
             allowDrag={true}
             boardWidth={480}
-            customSquareStyles={squareStyles}
+            
           />
         </div>
         <div className="controls">
           <button onClick={resetGame}>New Game</button>
           <button onClick={flipBoard}>Flip Board</button>
+          <button onClick={undoMove}>Undo</button>
+          <button onClick={redoMove}>Redo</button>
           <button onClick={calculateNextMove}>Calculate Next Move</button>
+          
           <div className="turn-options">
             <label>Set Turn:</label>
             <button onClick={() => setTurn('white')}>White to move</button>
@@ -339,10 +307,7 @@ function App() {
             <label>Best Move:</label>
             <span>{bestMove}</span>
           </div>
-          <div className="move-classification-display">
-            <label>Move Classification:</label>
-            <span>{moveClassification}</span>
-          </div>
+          
           <button onClick={loadPgn}>Load PGN</button>
           <button onClick={copyPgn}>Copy PGN</button>
           <div className="engine-options">
