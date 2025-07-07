@@ -11,7 +11,6 @@ function App() {
   const [evaluation, setEvaluation] = useState('');
   // eslint-disable-next-line no-unused-vars
   const [rawEvaluation, setRawEvaluation] = useState(null);
-  const [bestMove, setBestMove] = useState('');
   const [movetime, setMovetime] = useState(1000); // Default 1 second
   const [threads, setThreads] = useState(1); // Default 1 thread
   const [hashSize, setHashSize] = useState(16); // Default 16 MB
@@ -73,7 +72,6 @@ function App() {
           setRawEvaluation(scoreValue);
         }
       } else if (data.type === 'bestmove') {
-        setBestMove(`Best move: ${data.move}`);
         setGame((prevGame) => {
           const gameCopy = new Chess(prevGame.fen());
           try {
@@ -145,7 +143,6 @@ function App() {
 
 
   const calculateNextMove = React.useCallback(() => {
-    setBestMove(''); // Clear previous best move
     sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
   }, [movetime, sendCommandToBackend]);
 
@@ -357,10 +354,6 @@ function App() {
                 // Invalid FEN, do nothing or show error
               }
             }} />
-          </div>
-          <div className="best-move-display">
-            <label>Best Move:</label>
-            <span>{bestMove}</span>
           </div>
           
           <button onClick={loadPgn}>Load PGN</button>
