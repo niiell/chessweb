@@ -135,6 +135,18 @@ app.post('/make-move', (req, res) => {
     }
 });
 
+app.post('/set-option', (req, res) => {
+    const { name, value } = req.body;
+    if (stockfishProcess && name && value !== undefined) {
+        const command = `setoption name ${name} value ${value}\n`;
+        stockfishProcess.stdin.write(command);
+        console.log(`[Backend] Sent Stockfish option: ${command.trim()}`);
+        res.status(200).send({ message: 'Option sent to Stockfish' });
+    } else {
+        res.status(400).send({ message: 'Invalid option or Stockfish not running' });
+    }
+});
+
 startStockfish();
 
 server.listen(port, () => {

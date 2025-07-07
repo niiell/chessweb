@@ -13,7 +13,6 @@ function App() {
   const [rawEvaluation, setRawEvaluation] = useState(null);
   const [bestMove, setBestMove] = useState('');
   const [movetime, setMovetime] = useState(1000); // Default 1 second
-  const [multiPV, setMultiPV] = useState(1); // Default 1 principal variation
   const [threads, setThreads] = useState(1); // Default 1 thread
   const [hashSize, setHashSize] = useState(16); // Default 16 MB
   
@@ -137,10 +136,9 @@ function App() {
   }, [fen, sendCommandToBackend]);
 
   useEffect(() => {
-    setStockfishOption('MultiPV', multiPV);
     setStockfishOption('Threads', threads);
     setStockfishOption('Hash', hashSize);
-  }, [multiPV, threads, hashSize]);
+  }, [threads, hashSize]);
 
   
 
@@ -349,17 +347,7 @@ function App() {
               min="100"
               step="100"
             />
-            <label>MultiPV:</label>
-            <input
-              type="number"
-              value={multiPV}
-              onChange={(e) => {
-                setMultiPV(e.target.value);
-                setStockfishOption('MultiPV', e.target.value);
-              }}
-              min="1"
-              max="5"
-            />
+            
             <label>Threads:</label>
             <input
               type="number"
