@@ -310,7 +310,7 @@ function App() {
               <label>Evaluation:</label>
               <span>{evaluation}</span>
             </div>
-            <div className="evaluation-bar-container">
+            <div className="evaluation-bar-container" style={{ flexDirection: boardOrientation === 'white' ? 'column-reverse' : 'column' }}>
               <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
               <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
             </div>

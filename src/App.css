@@ -241,13 +241,13 @@
 }
 
 .evaluation-bar-white {
-  background-color: #f0d9b5;
+  background-color: white; /* White color for white's advantage */
   width: 100%;
   transition: height 0.3s ease;
 }
 
 .evaluation-bar-black {
-  background-color: #b58863;
+  background-color: black; /* Black color for black's advantage */
   width: 100%;
   transition: height 0.3s ease;
 }
