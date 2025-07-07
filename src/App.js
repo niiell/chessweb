@@ -20,6 +20,7 @@ function App() {
   const [gameHistory, setGameHistory] = useState([game.fen()]);
   const historyIndexRef = useRef(0);
   const [historyIndex, setHistoryIndex] = useState(0); // This is just to trigger re-renders
+  const [lastMove, setLastMove] = useState(null); // To store the last move for arrow display
   
   const socket = useRef(null);
 
@@ -86,7 +87,7 @@ function App() {
               });
               historyIndexRef.current = historyIndexRef.current + 1;
               setHistoryIndex(historyIndexRef.current);
-              
+              setLastMove({ from: moveResult.from, to: moveResult.to }); // Set last move for arrow
             }
           } catch (error) {
             console.error("Error applying best move:", error);
@@ -163,6 +164,7 @@ function App() {
       const gameCopy = new Chess(newFen);
       setGame(gameCopy);
       setFen(newFen);
+      setLastMove(null); // Clear last move on undo
     }
   };
 
@@ -175,6 +177,7 @@ function App() {
       const gameCopy = new Chess(newFen);
       setGame(gameCopy);
       setFen(newFen);
+      setLastMove(null); // Clear last move on redo
     }
   };
 
@@ -219,6 +222,7 @@ function App() {
           });
           historyIndexRef.current = historyIndexRef.current + 1;
           setHistoryIndex(historyIndexRef.current);
+          setLastMove({ from: sourceSquare, to: targetSquare }); // Set last move for arrow
           calculateNextMove(); // Trigger evaluation after a successful move
         }
       })
@@ -238,6 +242,7 @@ function App() {
     historyIndexRef.current = 0; // Reset history index ref
     setHistoryIndex(0); // Trigger re-render for history index
     setBoardOrientation('white');
+    setLastMove(null); // Clear last move on reset
   };
 
   const flipBoard = () => {
@@ -295,6 +300,7 @@ function App() {
             customDarkSquareStyle={{ backgroundColor: 'var(--board-dark-square)' }}
             customLightSquareStyle={{ backgroundColor: 'var(--board-light-square)' }}
             boardBorderRadius={8}
+            customArrows={lastMove ? [[lastMove.from, lastMove.to]] : []}
           />
         </div>
         <div className="controls">
