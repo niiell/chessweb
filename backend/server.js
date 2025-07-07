@@ -49,16 +49,8 @@ function startStockfish() {
                 io.emit('stockfish_output', parsedOutput);
             } else if (trimmedLine.startsWith('bestmove')) {
                 const move = trimmedLine.split(' ')[1];
-                console.log(`[Backend] Current FEN before bestmove: ${game.fen()}`);
-                console.log(`[Backend] Bestmove received: ${move}`);
-                try {
-                    game.move(move, { sloppy: true });
-                    console.log(`[Backend] FEN after bestmove: ${game.fen()}`);
-                    io.emit('stockfish_output', { type: 'fen', fen: game.fen() });
-                } catch (e) {
-                    console.error(`[Backend] Error applying bestmove ${move}: ${e.message}`);
-                    io.emit('stockfish_error', `Error applying bestmove ${move}: ${e.message}`);
-                }
+                console.log(`[Backend] Emitting bestmove: ${move}`);
+                io.emit('stockfish_output', { type: 'bestmove', move: move });
             }
         });
     });

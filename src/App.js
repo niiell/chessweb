@@ -74,6 +74,25 @@ function App() {
         }
       } else if (data.type === 'bestmove') {
         setBestMove(`Best move: ${data.move}`);
+        setGame((prevGame) => {
+          const gameCopy = new Chess(prevGame.fen());
+          try {
+            const moveResult = gameCopy.move(data.move);
+            if (moveResult) {
+              setFen(gameCopy.fen());
+              setGameHistory((prevHistory) => {
+                const newHistory = prevHistory.slice(0, historyIndexRef.current + 1);
+                return [...newHistory, gameCopy.fen()];
+              });
+              historyIndexRef.current = historyIndexRef.current + 1;
+              setHistoryIndex(historyIndexRef.current);
+              
+            }
+          } catch (error) {
+            console.error("Error applying best move:", error);
+          }
+          return gameCopy;
+        });
       } else if (data.type === 'fen') {
         const newFen = data.fen;
         setGame((prevGame) => {
@@ -127,10 +146,9 @@ function App() {
 
 
   const calculateNextMove = React.useCallback(() => {
+    setBestMove(''); // Clear previous best move
     sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
   }, [movetime, sendCommandToBackend]);
-
-  
 
   console.log("Initial game object:", game);
   console.log("Initial FEN:", fen);
@@ -201,6 +219,7 @@ function App() {
           });
           historyIndexRef.current = historyIndexRef.current + 1;
           setHistoryIndex(historyIndexRef.current);
+          calculateNextMove(); // Trigger evaluation after a successful move
         }
       })
       .catch(error => {
