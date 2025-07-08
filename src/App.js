@@ -14,6 +14,8 @@ const Controls = React.lazy(() => import('./Controls'));
 function App() {
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
+  const [moveHistory, setMoveHistory] = useState([game.fen()]); // Initialize with starting FEN
+  const [historyPointer, setHistoryPointer] = useState(0); // Pointer to current position in history
   const [boardOrientation, setBoardOrientation] = useState('white');
   const [stockfishEval, setStockfishEval] = useState({ score: null, type: 'cp' });
   const [lastMove, setLastMove] = useState(null);
@@ -107,10 +109,41 @@ function App() {
 
     if (move === null) return false; // Illegal move
 
-    setFen(gameCopy.fen());
+    const newFen = gameCopy.fen();
+    setFen(newFen);
     setLastMove({ from: move.from, to: move.to });
-    sendCommand(`position fen ${gameCopy.fen()}`);
+
+    // Update move history
+    const newHistory = moveHistory.slice(0, historyPointer + 1);
+    setMoveHistory([...newHistory, newFen]);
+    setHistoryPointer(newHistory.length);
+
+    sendCommand(`position fen ${newFen}`);
     return true;
+  };
+
+  const undoMove = () => {
+    if (historyPointer > 0) {
+      const newPointer = historyPointer - 1;
+      setHistoryPointer(newPointer);
+      setFen(moveHistory[newPointer]);
+      setLastMove(null); // Clear last move on undo
+      sendCommand(`position fen ${moveHistory[newPointer]}`);
+    } else {
+      toast.info('No moves to undo.');
+    }
+  };
+
+  const redoMove = () => {
+    if (historyPointer < moveHistory.length - 1) {
+      const newPointer = historyPointer + 1;
+      setHistoryPointer(newPointer);
+      setFen(moveHistory[newPointer]);
+      setLastMove(null); // Clear last move on redo
+      sendCommand(`position fen ${moveHistory[newPointer]}`);
+    } else {
+      toast.info('No moves to redo.');
+    }
   };
 
   const calculateNextMove = () => {
@@ -129,10 +162,13 @@ function App() {
 
   const resetGame = () => {
     const newGame = new Chess();
+    const initialFen = newGame.fen();
     setGame(newGame);
-    setFen(newGame.fen());
+    setFen(initialFen);
     setLastMove(null);
     setStockfishEval({ score: null, type: 'cp' });
+    setMoveHistory([initialFen]);
+    setHistoryPointer(0);
     toast.info('New game started.');
   };
 
@@ -225,6 +261,10 @@ function App() {
             onReset={resetGame}
             onFlip={flipBoard}
             onAnalyze={calculateNextMove}
+            onUndo={undoMove}
+            onRedo={redoMove}
+            canUndo={historyPointer > 0}
+            canRedo={historyPointer < moveHistory.length - 1}
             engineSettings={{ movetime, threads, hashSize }}
             setEngineSettings={{ setMovetime, setThreads, setHashSize }}
             sendCommand={sendCommand}

@@ -177,6 +177,16 @@
   box-shadow: 0 2px 8px var(--shadow-color);
 }
 
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+}
+
 .icon-button svg {
   width: 16px;
   height: 16px;

@@ -14,8 +14,10 @@ const ResetIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const FlipIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.6V8c0-1.1.9-2 2-2h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.4V16c0 1.1-.9 2-2 2H5"></path></svg>;
 const FenIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
 const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
+const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5L5 12l7 7z"></path><path d="M19 12H5"></path></svg>;
+const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
 
-const Controls = ({ onReset, onFlip, onAnalyze, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick }) => {
+const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick }) => {
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
     setEngineSettings.setThreads(value);
@@ -50,6 +52,13 @@ const Controls = ({ onReset, onFlip, onAnalyze, engineSettings, setEngineSetting
         <div className="button-group">
           <IconButton onClick={onReset} icon={<ResetIcon />} text="New Game" />
           <IconButton onClick={onFlip} icon={<FlipIcon />} text="Flip Board" />
+        </div>
+      </div>
+
+      <div className="control-group">
+        <div className="button-group">
+          <IconButton onClick={onUndo} icon={<UndoIcon />} text="Undo" disabled={!canUndo} />
+          <IconButton onClick={onRedo} icon={<RedoIcon />} text="Redo" disabled={!canRedo} />
         </div>
       </div>
 
