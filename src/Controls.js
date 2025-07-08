@@ -62,35 +62,44 @@ const Controls = ({ onReset, onFlip, onAnalyze, engineSettings, setEngineSetting
 
       <div className="control-group">
         <label htmlFor="movetime">Analysis Time (ms)</label>
-        <input 
-          type="number" 
+        <select 
           id="movetime"
           value={engineSettings.movetime}
           onChange={(e) => setEngineSettings.setMovetime(parseInt(e.target.value, 10))}
-        />
+        >
+          {[1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000].map(time => (
+            <option key={time} value={time}>{time}</option>
+          ))}
+        </select>
       </div>
 
       <div className="control-group">
         <label htmlFor="threads">CPU Threads</label>
-        <input 
-          type="range" 
-          id="threads"
-          min="1" 
-          max="16" // Assuming a reasonable max
-          value={engineSettings.threads}
-          onChange={handleThreadsChange}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input 
+            type="range" 
+            id="threads"
+            min="1" 
+            max="16" // Assuming a reasonable max
+            value={engineSettings.threads}
+            onChange={handleThreadsChange}
+            style={{ flex: 1 }}
+          />
+          <span style={{ minWidth: '20px', textAlign: 'right' }}>{engineSettings.threads}</span>
+        </div>
       </div>
 
       <div className="control-group">
         <label htmlFor="hash">Hash Size (MB)</label>
-        <input 
-          type="number" 
+        <select 
           id="hash"
-          step="16"
           value={engineSettings.hashSize}
           onChange={handleHashChange}
-        />
+        >
+          {[16, 32, 64, 128, 256, 512, 1024].map(size => (
+            <option key={size} value={size}>{size}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
