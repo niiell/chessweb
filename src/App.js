@@ -20,6 +20,8 @@ function App() {
   // eslint-disable-next-line no-unused-vars
   const [historyIndex, setHistoryIndex] = useState(0); // This is just to trigger re-renders
   const [lastMove, setLastMove] = useState(null); // To store the last move for arrow display
+  const [showFenPopup, setShowFenPopup] = useState(false);
+  const [showPgnPopup, setShowPgnPopup] = useState(false);
   
   const socket = useRef(null);
 
@@ -266,16 +268,56 @@ function App() {
       try {
         game.load_pgn(pgnInput);
         setFen(game.fen());
+        setGameHistory([game.fen()]); // Reset history on PGN load
+        historyIndexRef.current = 0;
+        setHistoryIndex(0);
+        setLastMove(null);
       } catch (error) {
         console.error("Error loading PGN:", error);
         alert("Invalid PGN. Please check the format.");
       }
     }
+    setShowPgnPopup(false);
   };
 
   const copyPgn = () => {
     navigator.clipboard.writeText(game.pgn());
     alert("PGN copied to clipboard!");
+    setShowPgnPopup(false);
+  };
+
+  const copyFen = () => {
+    navigator.clipboard.writeText(fen);
+    alert("FEN copied to clipboard!");
+    setShowFenPopup(false);
+  };
+
+  const loadFen = () => {
+    const fenInput = prompt("Enter FEN:");
+    if (fenInput) {
+      try {
+        game.load(fenInput);
+        setFen(game.fen());
+        setGameHistory([game.fen()]);
+        historyIndexRef.current = 0;
+        setHistoryIndex(0);
+        setLastMove(null);
+      } catch (error) {
+        console.error("Error loading FEN:", error);
+        alert("Invalid FEN. Please check the format.");
+      }
+    }
+    setShowFenPopup(false);
+  };
+
+  const toggleFenPopup = () => {
+    setShowFenPopup(!showFenPopup);
+    setShowPgnPopup(false); // Close PGN popup if open
+  };
+
+  const togglePgnPopup = () => {
+    setShowPgnPopup(!showPgnPopup);
+    setShowFenPopup(false); // Close FEN popup if open
   };
 
   // Calculate evaluation bar heights
@@ -333,10 +375,10 @@ function App() {
               <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
             </div>
             <div className="game-action-buttons">
-              <button onClick={resetGame} title="New Game">🆕</button>
-              <button onClick={flipBoard} title="Flip Board">🔄</button>
-              <button onClick={undoMove} title="Undo">↩️</button>
-              <button onClick={redoMove} title="Redo">↪️</button>
+              <button onClick={resetGame} title="New Game"><span class="icon-new-game"></span></button>
+              <button onClick={flipBoard} title="Flip Board"><span class="icon-flip-board"></span></button>
+              <button onClick={undoMove} title="Undo"><span class="icon-undo"></span></button>
+              <button onClick={redoMove} title="Redo"><span class="icon-redo"></span></button>
             </div>
           </div>
           <div className="chessboard-container">
@@ -362,20 +404,26 @@ function App() {
             <button onClick={() => setTurn('white')}>White to move</button>
             <button onClick={() => setTurn('black')}>Black to move</button>
           </div>
-          <div className="fen-display">
-            <label>FEN:</label>
-            <input type="text" value={fen} onChange={(e) => {
-              try {
-                game.load(e.target.value);
-                setFen(game.fen());
-              } catch (error) {
-                // Invalid FEN, do nothing or show error
-              }
-            }} />
+          <div className="fen-pgn-controls">
+            <div className="fen-control">
+              <button onClick={toggleFenPopup}>FEN</button>
+              {showFenPopup && (
+                <div className="popup-menu">
+                  <button onClick={copyFen}>Copy FEN</button>
+                  <button onClick={loadFen}>Import FEN</button>
+                </div>
+              )}
+            </div>
+            <div className="pgn-control">
+              <button onClick={togglePgnPopup}>PGN</button>
+              {showPgnPopup && (
+                <div className="popup-menu">
+                  <button onClick={copyPgn}>Copy PGN</button>
+                  <button onClick={loadPgn}>Import PGN</button>
+                </div>
+              )}
+            </div>
           </div>
-          
-          <button onClick={loadPgn}>Load PGN</button>
-          <button onClick={copyPgn}>Copy PGN</button>
           <div className="engine-options">
             <label>Search Time (ms):</label>
             <input
