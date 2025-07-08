@@ -63,27 +63,25 @@ function App() {
   
   const socket = useRef(null);
 
-  const sendCommandToBackend = React.useCallback(
-    debounce(async (command) => {
-      try {
-        const response = await fetch('http://localhost:3001/command', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ command }),
-        });
-        const data = await response.json();
-        console.log('Backend response:', data);
-      } catch (error) {
-        console.error('Error sending command to backend:', error);
-      }
-    }, 300),
-    []
-  ); // Debounce by 300ms
+  const sendCommandToBackend = React.useCallback(async (command) => {
+    try {
+      const response = await fetch('http://localhost:3001/command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+      });
+      const data = await response.json();
+      console.log('Command sent to backend:', command);
+      console.log('Backend response:', data);
+    } catch (error) {
+      console.error('Error sending command to backend:', error);
+    }
+  }, []);
 
   const setStockfishOption = React.useCallback(
-    debounce(async (name, value) => {
+    async (name, value) => {
       try {
         const response = await fetch('http://localhost:3001/set-option', {
           method: 'POST',
@@ -97,9 +95,9 @@ function App() {
       } catch (error) {
         console.error('Error setting Stockfish option:', error);
       }
-    }, 300),
+    },
     []
-  ); // Debounce by 300ms
+  );
 
   // Initialize WebSocket connection and listen for Stockfish output
   useEffect(() => {
@@ -122,9 +120,12 @@ function App() {
       } else if (data.type === 'bestmove') {
         setGame((prevGame) => {
           const gameCopy = new Chess(prevGame.fen());
+          console.log("Attempting to apply bestmove:", data.move);
+          console.log("FEN before move:", gameCopy.fen());
           try {
             const moveResult = gameCopy.move(data.move);
             if (moveResult) {
+              console.log("Move applied successfully. New FEN:", gameCopy.fen());
               setFen(gameCopy.fen());
               setGameHistory((prevHistory) => {
                 const newHistory = prevHistory.slice(0, historyIndexRef.current + 1);
@@ -133,6 +134,8 @@ function App() {
               historyIndexRef.current = historyIndexRef.current + 1;
               setHistoryIndex(historyIndexRef.current);
               setLastMove({ from: moveResult.from, to: moveResult.to }); // Set last move for arrow
+            } else {
+              console.warn("chess.js move() returned null. Move might be illegal or invalid:", data.move);
             }
           } catch (error) {
             console.error("Error applying best move:", error);
@@ -177,7 +180,7 @@ function App() {
   }, [sendCommandToBackend]);
 
   useEffect(() => {
-    sendCommandToBackend(`position fen ${fen}`);
+    // sendCommandToBackend(`position fen ${fen}`);
   }, [fen, sendCommandToBackend]);
 
   useEffect(() => {
@@ -213,8 +216,9 @@ function App() {
   };
 
   const calculateNextMove = React.useCallback(() => {
+    sendCommandToBackend(`position fen ${fen}`);
     sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
-  }, [movetime, sendCommandToBackend]);
+  }, [fen, movetime, sendCommandToBackend]);
 
   console.log("Initial game object:", game);
   console.log("Initial FEN:", fen);
@@ -276,19 +280,8 @@ function App() {
           console.error('Error making move:', data.error);
           toast.error(`Invalid move: ${data.error}`);
         } else {
-          // Update game state and history immediately after a successful move
-          const newGame = new Chess(data.newFen);
-          setGame(newGame);
-          setFen(newGame.fen());
-
-          setGameHistory((prevHistory) => {
-            const newHistory = prevHistory.slice(0, historyIndexRef.current + 1);
-            return [...newHistory, newGame.fen()];
-          });
-          historyIndexRef.current = historyIndexRef.current + 1;
-          setHistoryIndex(historyIndexRef.current);
-          setLastMove({ from: sourceSquare, to: targetSquare }); // Set last move for arrow
-          calculateNextMove(); // Trigger evaluation after a successful move
+          // The backend will broadcast the new FEN via WebSocket,
+          // so we don't need to update the state here.
         }
       })
       .catch(error => {
@@ -296,7 +289,7 @@ function App() {
         toast.error('Error communicating with backend.');
       });
 
-    return true; // Always return true, as the backend will handle the move
+    return false; // Return false to prevent optimistic UI updates
   }
 
   const resetGame = () => {

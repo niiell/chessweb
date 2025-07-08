@@ -23,6 +23,8 @@ const STOCKFISH_PATH = '../stockfish/stockfish-windows-x86-64-avx2.exe';
 let stockfishProcess;
 let outputBuffer = '';
 const game = new Chess();
+let fenHistory = [];
+let candidateMoves = [];
 
 function startStockfish() {
     stockfishProcess = spawn(STOCKFISH_PATH);
@@ -36,8 +38,14 @@ function startStockfish() {
             if (!trimmedLine) return;
             console.log(`Stockfish stdout (processed): ${trimmedLine}`);
             if (trimmedLine.startsWith('info')) {
+                const matchPv = trimmedLine.match(/ pv (.+)/);
+                if (matchPv) {
+                    const moves = matchPv[1].split(' ');
+                    if (moves.length > 0) {
+                        candidateMoves.push(moves[0]);
+                    }
+                }
                 const matchScore = trimmedLine.match(/score (cp|mate) (-?\d+)/);
-                const matchPv = trimmedLine.match(/pv (.+)/);
                 const matchDepth = trimmedLine.match(/depth (\d+)/);
                 const parsedOutput = {
                     type: 'info',
@@ -48,9 +56,10 @@ function startStockfish() {
                 };
                 io.emit('stockfish_output', parsedOutput);
             } else if (trimmedLine.startsWith('bestmove')) {
-                const move = trimmedLine.split(' ')[1];
-                console.log(`[Backend] Emitting bestmove: ${move}`);
-                io.emit('stockfish_output', { type: 'bestmove', move: move });
+                let bestMove = selectBestMove(candidateMoves);
+                candidateMoves = []; // Clear for next turn
+                console.log(`[Backend] Emitting bestmove: ${bestMove}`);
+                io.emit('stockfish_output', { type: 'bestmove', move: bestMove });
             }
         });
     });
@@ -70,14 +79,14 @@ function startStockfish() {
         io.emit('stockfish_status', { status: 'error', message: err.message });
     });
 
-    stockfishProcess.stdin.write('uci\n');
-    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"\n`);
+    stockfishProcess.stdin.write('uci\n');    stockfishProcess.stdin.write(`setoption name MultiPV value 3\n`);    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"\n`);
     stockfishProcess.stdin.write('setoption name Use Syzygy value true\n');
     stockfishProcess.stdin.write('isready\n');
 }
 
 app.post('/command', (req, res) => {
     const { command } = req.body;
+    console.log(`[Backend] Received command from frontend: ${command}`);
     if (stockfishProcess && command) {
         if (command.startsWith('position fen')) {
             const fenStartIndex = command.indexOf('fen ') + 4;
@@ -92,6 +101,7 @@ app.post('/command', (req, res) => {
             
             try {
                 game.load(fen);
+                fenHistory.push(fen); // Add to history
             } catch (e) {
                 console.error(`[Backend] Error loading FEN "${fen}": ${e.message}`);
                 res.status(400).send({ message: `Invalid FEN: ${e.message}` });
@@ -111,6 +121,8 @@ app.post('/command', (req, res) => {
             }
             io.emit('stockfish_output', { type: 'fen', fen: game.fen() });
         }
+        console.log(`[Backend] Current FEN before sending command to Stockfish: ${game.fen()}`);
+        console.log(`[Backend] Writing to Stockfish stdin: ${command}`);
         stockfishProcess.stdin.write(`${command}\n`);
         res.status(200).send({ message: 'Command sent to Stockfish' });
     } else {
@@ -146,6 +158,21 @@ app.post('/set-option', (req, res) => {
         res.status(400).send({ message: 'Invalid option or Stockfish not running' });
     }
 });
+
+function selectBestMove(moves) {
+    for (const move of moves) {
+        const gameCopy = new Chess(game.fen());
+        const result = gameCopy.move(move, { sloppy: true });
+        if (result) {
+            const newFen = gameCopy.fen();
+            const occurrences = fenHistory.filter(fen => fen === newFen).length;
+            if (occurrences < 2) {
+                return move; // This move doesn't lead to a threefold repetition
+            }
+        }
+    }
+    return moves[0] || null; // Fallback to the best move if all lead to repetition
+}
 
 startStockfish();
 
