@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { io } from 'socket.io-client';
+import { debounce } from 'lodash';
+import { motion } from 'framer-motion';
+import { Helmet } from 'react-helmet';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 function App() {
@@ -25,37 +30,43 @@ function App() {
   
   const socket = useRef(null);
 
-  const sendCommandToBackend = React.useCallback(async (command) => {
-    try {
-      const response = await fetch('http://localhost:3001/command', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ command }),
-      });
-      const data = await response.json();
-      console.log('Backend response:', data);
-    } catch (error) {
-      console.error('Error sending command to backend:', error);
-    }
-  }, []);
+  const sendCommandToBackend = React.useCallback(
+    debounce(async (command) => {
+      try {
+        const response = await fetch('http://localhost:3001/command', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ command }),
+        });
+        const data = await response.json();
+        console.log('Backend response:', data);
+      } catch (error) {
+        console.error('Error sending command to backend:', error);
+      }
+    }, 300),
+    []
+  ); // Debounce by 300ms
 
-  const setStockfishOption = async (name, value) => {
-    try {
-      const response = await fetch('http://localhost:3001/set-option', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, value }),
-      });
-      const data = await response.json();
-      console.log('Stockfish option response:', data);
-    } catch (error) {
-      console.error('Error setting Stockfish option:', error);
-    }
-  };
+  const setStockfishOption = React.useCallback(
+    debounce(async (name, value) => {
+      try {
+        const response = await fetch('http://localhost:3001/set-option', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, value }),
+        });
+        const data = await response.json();
+        console.log('Stockfish option response:', data);
+      } catch (error) {
+        console.error('Error setting Stockfish option:', error);
+      }
+    }, 300),
+    []
+  ); // Debounce by 300ms
 
   // Initialize WebSocket connection and listen for Stockfish output
   useEffect(() => {
@@ -207,7 +218,7 @@ function App() {
       .then(data => {
         if (data.error) {
           console.error('Error making move:', data.error);
-          alert(`Invalid move: ${data.error}`);
+          toast.error(`Invalid move: ${data.error}`);
         } else {
           // Update game state and history immediately after a successful move
           const newGame = new Chess(data.newFen);
@@ -226,7 +237,7 @@ function App() {
       })
       .catch(error => {
         console.error('Error sending move to backend:', error);
-        alert('Error communicating with backend.');
+        toast.error('Error communicating with backend.');
       });
 
     return true; // Always return true, as the backend will handle the move
@@ -274,7 +285,7 @@ function App() {
         setLastMove(null);
       } catch (error) {
         console.error("Error loading PGN:", error);
-        alert("Invalid PGN. Please check the format.");
+        toast.error("Invalid PGN. Please check the format.");
       }
     }
     setShowPgnPopup(false);
@@ -282,13 +293,13 @@ function App() {
 
   const copyPgn = () => {
     navigator.clipboard.writeText(game.pgn());
-    alert("PGN copied to clipboard!");
+    toast.success("PGN copied to clipboard!");
     setShowPgnPopup(false);
   };
 
   const copyFen = () => {
     navigator.clipboard.writeText(fen);
-    alert("FEN copied to clipboard!");
+    toast.success("FEN copied to clipboard!");
     setShowFenPopup(false);
   };
 
@@ -304,7 +315,7 @@ function App() {
         setLastMove(null);
       } catch (error) {
         console.error("Error loading FEN:", error);
-        alert("Invalid FEN. Please check the format.");
+        toast.error("Invalid FEN. Please check the format.");
       }
     }
     setShowFenPopup(false);
@@ -360,12 +371,55 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <header className="App-header">
-        
-      </header>
-      <div className="App-body">
-          <div className="evaluation-section">
+    <motion.div
+      className="App"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
+      }}
+    >
+      <Helmet>
+        <title>ChessNova - Advanced Chess Analysis</title>
+        <meta name="description" content="Play chess and analyze your games with Stockfish engine integration." />
+        <meta name="keywords" content="chess, online chess, Stockfish, chess analysis, FEN, PGN" />
+      </Helmet>
+      <div className="flare flare-1"></div>
+      <div className="flare flare-2"></div>
+      <div className="flare flare-3"></div>
+      <motion.header
+        className="App-header"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0, y: -20 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut", delay: 0.2 } },
+        }}
+      >
+        <div className="logo-container">
+          <div className="logo-icon"></div>
+          <h1>ChessNova</h1>
+        </div>
+      </motion.header>
+      <motion.div
+        className="App-body"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0, scale: 0.95 },
+          visible: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: "easeOut", delay: 0.4 } },
+        }}
+      >
+          <motion.div
+            className="evaluation-section"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0, x: -50 },
+              visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 0.6 } },
+            }}
+          >
             <div className="evaluation-display">
               <label>Evaluation:</label>
               <span>{effectiveFormattedEvaluation}</span>
@@ -380,8 +434,16 @@ function App() {
               <button onClick={undoMove} title="Undo"><span class="icon-undo"></span></button>
               <button onClick={redoMove} title="Redo"><span class="icon-redo"></span></button>
             </div>
-          </div>
-          <div className="chessboard-container">
+          </motion.div>
+          <motion.div
+            className="chessboard-container"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0, scale: 0.8 },
+              visible: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: "easeOut", delay: 0.8 } },
+            }}
+          >
           {console.log("Rendering Chessboard with FEN:", fen, "and Orientation:", boardOrientation)}
           <Chessboard
             id="my-chessboard"
@@ -395,8 +457,16 @@ function App() {
             boardBorderRadius={8}
             customArrows={lastMove ? [[lastMove.from, lastMove.to]] : []}
           />
-        </div>
-        <div className="controls">
+        </motion.div>
+        <motion.div
+          className="controls"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0, x: 50 },
+            visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 1.0 } },
+          }}
+        >
           <button onClick={calculateNextMove}>Calculate Next Move</button>
           
           <div className="turn-options">
@@ -460,9 +530,10 @@ function App() {
               step="1"
             />
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+      <ToastContainer position="bottom-right" theme="dark" />
+    </motion.div>
   );
 }
 

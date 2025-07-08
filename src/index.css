@@ -1,10 +1,11 @@
 body {
   margin: 0;
-  font-family: 'Roboto', sans-serif; /* Using Roboto as a modern sans-serif font */
+  font-family: 'Orbitron', 'Inter', 'Poppins', sans-serif; /* Futuristic font */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--primary-bg);
   color: var(--text-color);
+  overflow-x: hidden; /* Prevent horizontal scroll due to animations */
 }
 
 code {
@@ -13,15 +14,20 @@ code {
 }
 
 :root {
-  --primary-bg: #202020; /* Dark charcoal */
-  --secondary-bg: #2c2c2c; /* Slightly lighter dark gray for panels */
-  --text-color: #e0e0e0; /* Off-white */
-  --accent-color: #007bff; /* Vibrant blue for accents */
-  --button-bg: #0056b3; /* Darker blue for buttons */
-  --button-hover-bg: #004085; /* Even darker blue on hover */
-  --border-color: #444444; /* Darker border color */
-  --input-bg: #3a3a3a; /* Input background */
-  --input-border: #555555; /* Input border */
-  --board-light-square: #eeeed2; /* Light square color */
-  --board-dark-square: #769656; /* Dark square color */
+  --primary-bg: #0D1117; /* Dark base */
+  --secondary-bg: rgba(13, 17, 23, 0.6); /* Semi-transparent dark for panels */
+  --text-color: #e0e0e0; /* Light gray */
+  --accent-blue: #00BFFF; /* Electric Blue */
+  --accent-magenta: #8A2BE2; /* Magenta */
+  --gradient-accent: linear-gradient(90deg, var(--accent-blue) 0%, var(--accent-magenta) 100%);
+  --button-bg: rgba(0, 191, 255, 0.2); /* Semi-transparent blue */
+  --button-hover-bg: rgba(0, 191, 255, 0.4); /* Slightly more opaque blue */
+  --border-color: rgba(0, 191, 255, 0.5); /* Semi-transparent blue border */
+  --input-bg: rgba(13, 17, 23, 0.4); /* Semi-transparent input background */
+  --input-border: rgba(0, 191, 255, 0.7); /* Semi-transparent blue input border */
+  --board-light-square: rgba(255, 255, 255, 0.1); /* Very light transparent */
+  --board-dark-square: rgba(0, 0, 0, 0.3); /* Dark transparent */
+  --glass-blur: 20px; /* Heavy blur for glass effect */
+  --neon-glow-blue: 0 0 10px var(--accent-blue), 0 0 20px var(--accent-blue), 0 0 30px var(--accent-blue);
+  --neon-glow-magenta: 0 0 10px var(--accent-magenta), 0 0 20px var(--accent-magenta), 0 0 30px var(--accent-magenta);
 }
