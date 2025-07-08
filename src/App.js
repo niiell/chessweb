@@ -17,6 +17,7 @@ function App() {
   
   const [gameHistory, setGameHistory] = useState([game.fen()]);
   const historyIndexRef = useRef(0);
+  // eslint-disable-next-line no-unused-vars
   const [historyIndex, setHistoryIndex] = useState(0); // This is just to trigger re-renders
   const [lastMove, setLastMove] = useState(null); // To store the last move for arrow display
   
