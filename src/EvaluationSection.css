@@ -1,0 +1,35 @@
+
+.evaluation-display {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.evaluation-bar {
+  width: 12px;
+  height: 200px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse; /* White at bottom, black at top */
+}
+
+.evaluation-bar-white {
+  width: 100%;
+  background-color: #FFFFFF;
+  transition: height 0.3s ease;
+}
+
+.evaluation-score {
+  font-size: 1.8em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* In dark mode, the black part of the bar is just the absence of the white part */
+[data-theme='dark'] .evaluation-bar-white {
+    background-color: var(--text-primary);
+}

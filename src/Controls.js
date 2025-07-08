@@ -1,97 +1,98 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
-const Controls = ({ 
-  calculateNextMove, 
-  setTurn, 
-  toggleFenPopup, 
-  showFenPopup, 
-  copyFen, 
-  loadFen, 
-  togglePgnPopup, 
-  showPgnPopup, 
-  copyPgn, 
-  loadPgn, 
-  movetime, 
-  setMovetime, 
-  setStockfishOption, 
-  threads, 
-  setThreads, 
-  hashSize, 
-  setHashSize 
-}) => {
+// Reusable Icon Button Component
+const IconButton = ({ onClick, icon, text, className = '' }) => (
+  <button onClick={onClick} className={`icon-button ${className}`}>
+    {icon}
+    <span>{text}</span>
+  </button>
+);
+
+// SVG Icons for a clean, modern look
+const AnalyzeIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
+const ResetIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
+const FlipIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.6V8c0-1.1.9-2 2-2h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.4V16c0 1.1-.9 2-2 2H5"></path></svg>;
+const FenIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
+const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
+
+const Controls = ({ onReset, onFlip, onAnalyze, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick }) => {
+  const handleThreadsChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    setEngineSettings.setThreads(value);
+    sendCommand(`setoption name Threads value ${value}`);
+  };
+
+  const handleHashChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    setEngineSettings.setHashSize(value);
+    sendCommand(`setoption name Hash value ${value}`);
+  };
+
   return (
-    <motion.div
-      className="controls"
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0, x: 50 },
-        visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 1.0 } },
-      }}
-    >
-      <div className="turn-options">
-        <label>Set Turn:</label>
-        <button onClick={() => setTurn('white')}>White to move</button>
-        <button onClick={() => setTurn('black')}>Black to move</button>
+    <div className="panel controls">
+      <div className="control-group">
+        <IconButton onClick={onAnalyze} icon={<AnalyzeIcon />} text="Next Move" className="button-primary" />
       </div>
-      <div className="fen-pgn-controls">
-        <div className="fen-control">
-          <button onClick={toggleFenPopup}>FEN</button>
-          {showFenPopup && (
-            <div className="popup-menu">
-              <button onClick={copyFen}>Copy FEN</button>
-              <button onClick={loadFen}>Import FEN</button>
-            </div>
-          )}
-        </div>
-        <div className="pgn-control">
-          <button onClick={togglePgnPopup}>PGN</button>
-          {showPgnPopup && (
-            <div className="popup-menu">
-              <button onClick={copyPgn}>Copy PGN</button>
-              <button onClick={loadPgn}>Import PGN</button>
-            </div>
-          )}
+
+      <div className="control-group">
+        <select
+          id="analyzeSide"
+          value={analyzeSide}
+          onChange={(e) => setAnalyzeSide(e.target.value)}
+        >
+          <option value="current">Current Turn</option>
+          <option value="white">White</option>
+          <option value="black">Black</option>
+        </select>
+      </div>
+
+      <div className="control-group">
+        <div className="button-group">
+          <IconButton onClick={onReset} icon={<ResetIcon />} text="New Game" />
+          <IconButton onClick={onFlip} icon={<FlipIcon />} text="Flip Board" />
         </div>
       </div>
-      <div className="engine-options">
-        <label>Search Time (ms):</label>
-        <input
-          type="number"
-          value={movetime}
-          onChange={(e) => {
-            setMovetime(e.target.value);
-            setStockfishOption('Move Time', e.target.value);
-          }}
-          min="100"
-          step="100"
-        />
-        
-        <label>Threads:</label>
-        <input
-          type="number"
-          value={threads}
-          onChange={(e) => {
-            setThreads(e.target.value);
-            setStockfishOption('Threads', e.target.value);
-          }}
-          min="1"
-          max="8"
-        />
-        <label>Hash Size (MB):</label>
-        <input
-          type="number"
-          value={hashSize}
-          onChange={(e) => {
-            setHashSize(e.target.value);
-            setStockfishOption('Hash', e.target.value);
-          }}
-          min="1"
-          step="1"
+
+      <div className="control-group">
+        <div className="button-group">
+          <IconButton onClick={onFenClick} icon={<FenIcon />} text="FEN" />
+          <IconButton onClick={onPgnClick} icon={<PgnIcon />} text="PGN" />
+        </div>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="movetime">Analysis Time (ms)</label>
+        <input 
+          type="number" 
+          id="movetime"
+          value={engineSettings.movetime}
+          onChange={(e) => setEngineSettings.setMovetime(parseInt(e.target.value, 10))}
         />
       </div>
-    </motion.div>
+
+      <div className="control-group">
+        <label htmlFor="threads">CPU Threads</label>
+        <input 
+          type="range" 
+          id="threads"
+          min="1" 
+          max="16" // Assuming a reasonable max
+          value={engineSettings.threads}
+          onChange={handleThreadsChange}
+        />
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="hash">Hash Size (MB)</label>
+        <input 
+          type="number" 
+          id="hash"
+          step="16"
+          value={engineSettings.hashSize}
+          onChange={handleHashChange}
+        />
+      </div>
+    </div>
   );
 };
 

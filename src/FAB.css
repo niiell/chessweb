@@ -1,23 +1,31 @@
 .fab {
   position: fixed;
   bottom: 30px;
-  right: 100px;
-  background: var(--gradient-accent);
+  right: 30px;
+  background-color: var(--accent-color);
   color: white;
   border: none;
-  padding: 15px 30px;
-  border-radius: 50px; /* Pill shape */
-  font-size: 1.1em;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font-size: 1.5em;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-color);
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.fab:hover {
+  background-color: var(--accent-color-hover);
+  transform: scale(1.05);
 }
 
 .fab:before {
-  content: '\26A1'; /* High Voltage Sign for analysis */
-  font-size: 1.2em;
+  content: '\2699'; /* Gear icon for settings/analysis */
+  font-size: 1.5em;
+  line-height: 1;
 }

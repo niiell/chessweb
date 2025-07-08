@@ -25,6 +25,7 @@ let outputBuffer = '';
 const game = new Chess();
 let fenHistory = [];
 let candidateMoves = [];
+let currentFenForAnalysis = '';
 
 function startStockfish() {
     stockfishProcess = spawn(STOCKFISH_PATH);
@@ -36,7 +37,7 @@ function startStockfish() {
         lines.forEach(line => {
             const trimmedLine = line.trim();
             if (!trimmedLine) return;
-            console.log(`Stockfish stdout (processed): ${trimmedLine}`);
+            console.log(`[Stockfish Raw Output]: ${trimmedLine}`); // Added log for raw output
             if (trimmedLine.startsWith('info')) {
                 const matchPv = trimmedLine.match(/ pv (.+)/);
                 if (matchPv) {
@@ -55,11 +56,12 @@ function startStockfish() {
                     depth: matchDepth ? parseInt(matchDepth[1], 10) : null,
                 };
                 io.emit('stockfish_output', parsedOutput);
+                console.log(`[Backend] Emitted info: ${JSON.stringify(parsedOutput)}`); // Added log for emitted info
             } else if (trimmedLine.startsWith('bestmove')) {
-                let bestMove = selectBestMove(candidateMoves);
-                candidateMoves = []; // Clear for next turn
+                const parts = trimmedLine.split(' ');
+                const bestMove = parts[1];
                 console.log(`[Backend] Emitting bestmove: ${bestMove}`);
-                io.emit('stockfish_output', { type: 'bestmove', move: bestMove });
+                io.emit('stockfish_output', { type: 'bestmove', move: bestMove, fen: currentFenForAnalysis });
             }
         });
     });
@@ -79,56 +81,10 @@ function startStockfish() {
         io.emit('stockfish_status', { status: 'error', message: err.message });
     });
 
-    stockfishProcess.stdin.write('uci\n');    stockfishProcess.stdin.write(`setoption name MultiPV value 3\n`);    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"\n`);
-    stockfishProcess.stdin.write('setoption name Use Syzygy value true\n');
+    stockfishProcess.stdin.write('uci\n');    stockfishProcess.stdin.write(`setoption name MultiPV value 3\n`);    // stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"\n`);
+    // stockfishProcess.stdin.write('setoption name Use Syzygy value true\n');
     stockfishProcess.stdin.write('isready\n');
 }
-
-app.post('/command', (req, res) => {
-    const { command } = req.body;
-    console.log(`[Backend] Received command from frontend: ${command}`);
-    if (stockfishProcess && command) {
-        if (command.startsWith('position fen')) {
-            const fenStartIndex = command.indexOf('fen ') + 4;
-            let fen = command.substring(fenStartIndex);
-            let moves = '';
-
-            const movesKeywordIndex = fen.indexOf(' moves ');
-            if (movesKeywordIndex !== -1) {
-                moves = fen.substring(movesKeywordIndex + 7);
-                fen = fen.substring(0, movesKeywordIndex);
-            }
-            
-            try {
-                game.load(fen);
-                fenHistory.push(fen); // Add to history
-            } catch (e) {
-                console.error(`[Backend] Error loading FEN "${fen}": ${e.message}`);
-                res.status(400).send({ message: `Invalid FEN: ${e.message}` });
-                return;
-            }
-            console.log(`[Backend] FEN loaded from frontend: ${fen}`);
-            if (moves) {
-                const moveArray = moves.split(' ');
-                moveArray.forEach(move => {
-                    try {
-                        game.move(move, { sloppy: true });
-                        console.log(`[Backend] Applied user move: ${move}. New FEN: ${game.fen()}`);
-                    } catch (e) {
-                        console.error(`[Backend] Error applying user move ${move}: ${e.message}`);
-                    }
-                });
-            }
-            io.emit('stockfish_output', { type: 'fen', fen: game.fen() });
-        }
-        console.log(`[Backend] Current FEN before sending command to Stockfish: ${game.fen()}`);
-        console.log(`[Backend] Writing to Stockfish stdin: ${command}`);
-        stockfishProcess.stdin.write(`${command}\n`);
-        res.status(200).send({ message: 'Command sent to Stockfish' });
-    } else {
-        res.status(400).send({ message: 'Invalid command or Stockfish not running' });
-    }
-});
 
 app.post('/make-move', (req, res) => {
     const { move, currentFen } = req.body;
@@ -159,20 +115,25 @@ app.post('/set-option', (req, res) => {
     }
 });
 
-function selectBestMove(moves) {
-    for (const move of moves) {
-        const gameCopy = new Chess(game.fen());
-        const result = gameCopy.move(move, { sloppy: true });
-        if (result) {
-            const newFen = gameCopy.fen();
-            const occurrences = fenHistory.filter(fen => fen === newFen).length;
-            if (occurrences < 2) {
-                return move; // This move doesn't lead to a threefold repetition
+
+
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    socket.on('command', (command) => {
+        if (stockfishProcess) {
+            console.log(`[Frontend] Received command: ${command}`);
+            if (command.startsWith('position fen')) {
+                currentFenForAnalysis = command.substring(13);
             }
+            stockfishProcess.stdin.write(`${command}\n`);
         }
-    }
-    return moves[0] || null; // Fallback to the best move if all lead to repetition
-}
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+});
 
 startStockfish();
 

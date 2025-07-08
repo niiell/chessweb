@@ -1,36 +1,33 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import './EvaluationSection.css';
 
-const EvaluationSection = ({ 
-  effectiveFormattedEvaluation, 
-  isEvalPulsing, 
-  boardOrientation, 
-  whiteHeight, 
-  blackHeight, 
-  resetGame, 
-  flipBoard, 
-  undoMove, 
-  redoMove 
-}) => {
+const EvaluationSection = ({ evaluation, orientation, whiteHeight }) => {
+  const getFormattedEval = () => {
+    if (evaluation.score === null) return '0.0';
+
+    let score = evaluation.type === 'cp' ? (evaluation.score / 100).toFixed(1) : `#${Math.abs(evaluation.score)}`;
+    
+    // Flip score for black's perspective if it's a centipawn value
+    if (orientation === 'black' && evaluation.type === 'cp') {
+      score = (parseFloat(score) * -1).toFixed(1);
+    }
+    // For mate, the sign indicates who is mating, which is intuitive regardless of orientation
+
+    return score;
+  };
+
   return (
-    <motion.div
-      className="evaluation-section"
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0, x: -50 },
-        visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 0.6 } },
-      }}
-    >
+    <div className="panel evaluation-section">
       <div className="evaluation-display">
-        <label>Evaluation:</label>
-        <span>{effectiveFormattedEvaluation}</span>
+        <div className="evaluation-bar">
+          <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
+        </div>
+        <div className="evaluation-score">
+          <span>{getFormattedEval()}</span>
+        </div>
       </div>
-      <div className={`evaluation-bar-container ${isEvalPulsing ? 'pulsing' : ''}`} style={{ flexDirection: boardOrientation === 'white' ? 'column-reverse' : 'column' }}>
-        <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
-        <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
-      </div>
-    </motion.div>
+      {/* Other evaluation info can go here */}
+    </div>
   );
 };
 
