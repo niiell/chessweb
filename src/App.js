@@ -8,9 +8,9 @@ function App() {
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
   const [boardOrientation, setBoardOrientation] = useState('white');
-  const [evaluation, setEvaluation] = useState('');
-  // eslint-disable-next-line no-unused-vars
-  const [rawEvaluation, setRawEvaluation] = useState(null);
+  const [stockfishFormattedEval, setStockfishFormattedEval] = useState('');
+  const [stockfishRawEval, setStockfishRawEval] = useState(null);
+  const [scoreType, setScoreType] = useState('cp'); // 'cp' or 'mate'
   const [movetime, setMovetime] = useState(1000); // Default 1 second
   const [threads, setThreads] = useState(1); // Default 1 thread
   const [hashSize, setHashSize] = useState(16); // Default 16 MB
@@ -68,8 +68,9 @@ function App() {
         if (data.score) {
           const scoreType = data.score.type;
           const scoreValue = data.score.value;
-          setEvaluation(scoreType === 'cp' ? `${(scoreValue / 100.0).toFixed(1)}` : `M${scoreValue}`);
-          setRawEvaluation(scoreValue);
+          setScoreType(scoreType);
+          setStockfishFormattedEval(scoreType === 'cp' ? `${(scoreValue / 100.0).toFixed(1)}` : `M${scoreValue}`);
+          setStockfishRawEval(scoreValue);
         }
       } else if (data.type === 'bestmove') {
         setGame((prevGame) => {
@@ -130,7 +131,6 @@ function App() {
 
   useEffect(() => {
     sendCommandToBackend(`position fen ${fen}`);
-    // No longer automatically send 'go depth 15' here, it will be triggered by button
   }, [fen, sendCommandToBackend]);
 
   useEffect(() => {
@@ -278,21 +278,38 @@ function App() {
   };
 
   // Calculate evaluation bar heights
+  // Calculate evaluation for display and bar
+  let effectiveRawEvaluation = stockfishRawEval;
+  let effectiveFormattedEvaluation = ''; // Initialize to empty string
+
+  if (stockfishRawEval !== null) {
+    if (boardOrientation === 'black') {
+      effectiveRawEvaluation = -stockfishRawEval;
+    }
+
+    // Always format effectiveFormattedEvaluation based on effectiveRawEvaluation
+    if (scoreType === 'mate') {
+      effectiveFormattedEvaluation = `M${effectiveRawEvaluation}`;
+    } else {
+      effectiveFormattedEvaluation = `${(effectiveRawEvaluation / 100.0).toFixed(1)}`;
+    }
+  }
+
   let whiteHeight = 50;
   let blackHeight = 50;
 
-  if (rawEvaluation !== null) {
-    if (evaluation.startsWith('M')) { // Mate score
-      if (rawEvaluation > 0) { // White is winning
+  if (effectiveRawEvaluation !== null) { // Use effectiveRawEvaluation for bar calculation
+    if (scoreType === 'mate') { // Mate score
+      if (effectiveRawEvaluation > 0) { // Winning
         whiteHeight = 100;
         blackHeight = 0;
-      } else { // Black is winning
+      } else { // Losing
         whiteHeight = 0;
         blackHeight = 100;
       }
     } else { // Centipawn score
       // Normalize centipawn score to a percentage. Max advantage around 1000 cp (10 pawns)
-      const normalizedScore = Math.max(-1000, Math.min(1000, rawEvaluation));
+      const normalizedScore = Math.max(-1000, Math.min(1000, effectiveRawEvaluation));
       // Convert to a 0-100 scale where 0 is -1000cp, 50 is 0cp, 100 is 1000cp
       whiteHeight = 50 + (normalizedScore / 20);
       blackHeight = 100 - whiteHeight;
@@ -308,7 +325,7 @@ function App() {
           <div className="evaluation-section">
             <div className="evaluation-display">
               <label>Evaluation:</label>
-              <span>{evaluation}</span>
+              <span>{effectiveFormattedEvaluation}</span>
             </div>
             <div className="evaluation-bar-container" style={{ flexDirection: boardOrientation === 'white' ? 'column-reverse' : 'column' }}>
               <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
