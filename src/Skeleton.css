@@ -1,0 +1,27 @@
+.skeleton {
+  background: var(--secondary-bg);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  height: 100%;
+  width: 150%;
+  background: linear-gradient(to right, transparent 0%, var(--accent-blue) 50%, transparent 100%);
+  animation: shimmer 1.5s infinite;
+  filter: blur(30px);
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

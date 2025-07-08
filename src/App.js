@@ -1,13 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Chessboard } from 'react-chessboard';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Chess } from 'chess.js';
 import { io } from 'socket.io-client';
 import { debounce } from 'lodash';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+import Logo from './Logo';
+import LoadingScreen from './LoadingScreen';
+
+const EvaluationSection = React.lazy(() => import('./EvaluationSection'));
+const ChessboardContainer = React.lazy(() => import('./ChessboardContainer'));
+const Controls = React.lazy(() => import('./Controls'));
 
 function App() {
   const [game, setGame] = useState(new Chess());
@@ -27,6 +32,32 @@ function App() {
   const [lastMove, setLastMove] = useState(null); // To store the last move for arrow display
   const [showFenPopup, setShowFenPopup] = useState(false);
   const [showPgnPopup, setShowPgnPopup] = useState(false);
+  const [ripple, setRipple] = useState(null); // For ripple effect
+  const [isEvalPulsing, setIsEvalPulsing] = useState(false); // For evaluation bar pulse
+  const [isLoading, setIsLoading] = useState(true);
+
+  // For 3D Tilt Effect
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateX = useTransform(mouseY, [0, window.innerHeight], [10, -10]);
+  const rotateY = useTransform(mouseX, [0, window.innerWidth], [-10, 10]);
+
+  const handleMouseMove = (event) => {
+    mouseX.set(event.clientX);
+    mouseY.set(event.clientY);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 3000); // Simulate loading
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
   
   const socket = useRef(null);
 
@@ -152,9 +183,32 @@ function App() {
     setStockfishOption('Hash', hashSize);
   }, [threads, hashSize]);
 
-  
+  useEffect(() => {
+    if (stockfishFormattedEval) {
+      setIsEvalPulsing(true);
+      const timer = setTimeout(() => {
+        setIsEvalPulsing(false);
+      }, 1000); // Pulse for 1 second
+      return () => clearTimeout(timer);
+    }
+  }, [stockfishFormattedEval]);
 
+  const handleSquareClick = (square) => {
+    const boardElement = document.getElementById('my-chessboard');
+    if (!boardElement) return;
 
+    const squareElement = boardElement.querySelector(`div[data-square='${square}']`);
+    if (!squareElement) return;
+
+    const rippleElement = document.createElement('span');
+    rippleElement.classList.add('ripple-effect');
+    squareElement.appendChild(rippleElement);
+
+    // Remove the ripple element after the animation
+    rippleElement.addEventListener('animationend', () => {
+      rippleElement.remove();
+    });
+  };
 
   const calculateNextMove = React.useCallback(() => {
     sendCommandToBackend(`go movetime ${movetime}`); // Use movetime for search time
@@ -370,6 +424,10 @@ function App() {
     }
   }
 
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <motion.div
       className="App"
@@ -380,6 +438,11 @@ function App() {
         visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
       }}
     >
+      <div className="parallax-bg">
+        <div className="parallax-layer layer-1"></div>
+        <div className="parallax-layer layer-2"></div>
+        <div className="parallax-layer layer-3"></div>
+      </div>
       <Helmet>
         <title>ChessNova - Advanced Chess Analysis</title>
         <meta name="description" content="Play chess and analyze your games with Stockfish engine integration." />
@@ -398,7 +461,7 @@ function App() {
         }}
       >
         <div className="logo-container">
-          <div className="logo-icon"></div>
+          <Logo />
           <h1>ChessNova</h1>
         </div>
       </motion.header>
@@ -411,126 +474,47 @@ function App() {
           visible: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: "easeOut", delay: 0.4 } },
         }}
       >
-          <motion.div
-            className="evaluation-section"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0, x: -50 },
-              visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 0.6 } },
-            }}
-          >
-            <div className="evaluation-display">
-              <label>Evaluation:</label>
-              <span>{effectiveFormattedEvaluation}</span>
-            </div>
-            <div className="evaluation-bar-container" style={{ flexDirection: boardOrientation === 'white' ? 'column-reverse' : 'column' }}>
-              <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
-              <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
-            </div>
-            <div className="game-action-buttons">
-              <button onClick={resetGame} title="New Game"><span class="icon-new-game"></span></button>
-              <button onClick={flipBoard} title="Flip Board"><span class="icon-flip-board"></span></button>
-              <button onClick={undoMove} title="Undo"><span class="icon-undo"></span></button>
-              <button onClick={redoMove} title="Redo"><span class="icon-redo"></span></button>
-            </div>
-          </motion.div>
-          <motion.div
-            className="chessboard-container"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0, scale: 0.8 },
-              visible: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: "easeOut", delay: 0.8 } },
-            }}
-          >
-          {console.log("Rendering Chessboard with FEN:", fen, "and Orientation:", boardOrientation)}
-          <Chessboard
-            id="my-chessboard"
-            position={fen}
-            onPieceDrop={onDrop}
+        <Suspense fallback={<div>Loading...</div>}>
+          <EvaluationSection 
+            effectiveFormattedEvaluation={effectiveFormattedEvaluation}
+            isEvalPulsing={isEvalPulsing}
             boardOrientation={boardOrientation}
-            allowDrag={true}
-            boardWidth={560}
-            customDarkSquareStyle={{ backgroundColor: 'var(--board-dark-square)' }}
-            customLightSquareStyle={{ backgroundColor: 'var(--board-light-square)' }}
-            boardBorderRadius={8}
-            customArrows={lastMove ? [[lastMove.from, lastMove.to]] : []}
+            whiteHeight={whiteHeight}
+            blackHeight={blackHeight}
+            resetGame={resetGame}
+            flipBoard={flipBoard}
+            undoMove={undoMove}
+            redoMove={redoMove}
           />
-        </motion.div>
-        <motion.div
-          className="controls"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0, x: 50 },
-            visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 1.0 } },
-          }}
-        >
-          <button onClick={calculateNextMove}>Calculate Next Move</button>
-          
-          <div className="turn-options">
-            <label>Set Turn:</label>
-            <button onClick={() => setTurn('white')}>White to move</button>
-            <button onClick={() => setTurn('black')}>Black to move</button>
-          </div>
-          <div className="fen-pgn-controls">
-            <div className="fen-control">
-              <button onClick={toggleFenPopup}>FEN</button>
-              {showFenPopup && (
-                <div className="popup-menu">
-                  <button onClick={copyFen}>Copy FEN</button>
-                  <button onClick={loadFen}>Import FEN</button>
-                </div>
-              )}
-            </div>
-            <div className="pgn-control">
-              <button onClick={togglePgnPopup}>PGN</button>
-              {showPgnPopup && (
-                <div className="popup-menu">
-                  <button onClick={copyPgn}>Copy PGN</button>
-                  <button onClick={loadPgn}>Import PGN</button>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="engine-options">
-            <label>Search Time (ms):</label>
-            <input
-              type="number"
-              value={movetime}
-              onChange={(e) => {
-                setMovetime(e.target.value);
-                setStockfishOption('Move Time', e.target.value);
-              }}
-              min="100"
-              step="100"
-            />
-            
-            <label>Threads:</label>
-            <input
-              type="number"
-              value={threads}
-              onChange={(e) => {
-                setThreads(e.target.value);
-                setStockfishOption('Threads', e.target.value);
-              }}
-              min="1"
-              max="8"
-            />
-            <label>Hash Size (MB):</label>
-            <input
-              type="number"
-              value={hashSize}
-              onChange={(e) => {
-                setHashSize(e.target.value);
-                setStockfishOption('Hash', e.target.value);
-              }}
-              min="1"
-              step="1"
-            />
-          </div>
-        </motion.div>
+          <ChessboardContainer
+            fen={fen}
+            onDrop={onDrop}
+            handleSquareClick={handleSquareClick}
+            boardOrientation={boardOrientation}
+            lastMove={lastMove}
+            rotateX={rotateX}
+            rotateY={rotateY}
+          />
+          <Controls
+            calculateNextMove={calculateNextMove}
+            setTurn={setTurn}
+            toggleFenPopup={toggleFenPopup}
+            showFenPopup={showFenPopup}
+            copyFen={copyFen}
+            loadFen={loadFen}
+            togglePgnPopup={togglePgnPopup}
+            showPgnPopup={showPgnPopup}
+            copyPgn={copyPgn}
+            loadPgn={loadPgn}
+            movetime={movetime}
+            setMovetime={setMovetime}
+            setStockfishOption={setStockfishOption}
+            threads={threads}
+            setThreads={setThreads}
+            hashSize={hashSize}
+            setHashSize={setHashSize}
+          />
+        </Suspense>
       </motion.div>
       <ToastContainer position="bottom-right" theme="dark" />
     </motion.div>
