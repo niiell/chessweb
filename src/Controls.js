@@ -17,7 +17,9 @@ const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5L5 12l7 7z"></path><path d="M19 12H5"></path></svg>;
 const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
 
-const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick }) => {
+const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize }) => {
+  
+
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
     setEngineSettings.setThreads(value);
@@ -89,7 +91,7 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
             type="range" 
             id="threads"
             min="1" 
-            max="16" // Assuming a reasonable max
+            max={engineSettings.maxThreads}
             value={engineSettings.threads}
             onChange={handleThreadsChange}
             style={{ flex: 1 }}
@@ -100,15 +102,19 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
 
       <div className="control-group">
         <label htmlFor="hash">Hash Size (MB)</label>
-        <select 
-          id="hash"
-          value={engineSettings.hashSize}
-          onChange={handleHashChange}
-        >
-          {[16, 32, 64, 128, 256, 512, 1024].map(size => (
-            <option key={size} value={size}>{size}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input 
+            type="range" 
+            id="hash"
+            min="16" 
+            max={engineSettings.maxHashSize}
+            step="16" // Increment by 16MB
+            value={engineSettings.hashSize}
+            onChange={handleHashChange}
+            style={{ flex: 1 }}
+          />
+          <span style={{ minWidth: '40px', textAlign: 'right' }}>{engineSettings.hashSize} MB</span>
+        </div>
       </div>
     </div>
   );

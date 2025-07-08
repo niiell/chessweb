@@ -30,7 +30,16 @@ function App() {
   // Engine settings
   const [movetime, setMovetime] = useState(1000);
   const [threads, setThreads] = useState(4);
+  const [maxThreads, setMaxThreads] = useState(navigator.hardwareConcurrency || 4);
   const [hashSize, setHashSize] = useState(128);
+  const [maxHashSize, setMaxHashSize] = useState(() => {
+    if (navigator.deviceMemory) {
+      // Use half of the device memory in MB, rounded down to the nearest power of 2
+      const memoryInMB = Math.floor(navigator.deviceMemory * 1024);
+      return Math.pow(2, Math.floor(Math.log2(memoryInMB / 2)));
+    }
+    return 2048; // Default to 2GB if deviceMemory is not available
+  });
 
   const analysisFenRef = useRef(null);
 
@@ -170,6 +179,7 @@ function App() {
     setMoveHistory([initialFen]);
     setHistoryPointer(0);
     toast.info('New game started.');
+    sendCommand('ucinewgame');
   };
 
   const flipBoard = () => setBoardOrientation(p => (p === 'white' ? 'black' : 'white'));
@@ -265,7 +275,7 @@ function App() {
             onRedo={redoMove}
             canUndo={historyPointer > 0}
             canRedo={historyPointer < moveHistory.length - 1}
-            engineSettings={{ movetime, threads, hashSize }}
+            engineSettings={{ movetime, threads, hashSize, maxThreads, maxHashSize }}
             setEngineSettings={{ setMovetime, setThreads, setHashSize }}
             sendCommand={sendCommand}
             analyzeSide={analyzeSide}
