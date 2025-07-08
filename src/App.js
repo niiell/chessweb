@@ -9,6 +9,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import Logo from './Logo';
 import LoadingScreen from './LoadingScreen';
+import FAB from './FAB';
+import MultiFAB from './MultiFAB';
 
 const EvaluationSection = React.lazy(() => import('./EvaluationSection'));
 const ChessboardContainer = React.lazy(() => import('./ChessboardContainer'));
@@ -424,6 +426,13 @@ function App() {
     }
   }
 
+  const fabActions = [
+    { label: 'New Game', icon: 'new-game', onClick: resetGame },
+    { label: 'Flip Board', icon: 'flip-board', onClick: flipBoard },
+    { label: 'Undo', icon: 'undo', onClick: undoMove },
+    { label: 'Redo', icon: 'redo', onClick: redoMove },
+  ];
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -516,6 +525,8 @@ function App() {
           />
         </Suspense>
       </motion.div>
+      <FAB onClick={calculateNextMove} />
+      <MultiFAB actions={fabActions} />
       <ToastContainer position="bottom-right" theme="dark" />
     </motion.div>
   );

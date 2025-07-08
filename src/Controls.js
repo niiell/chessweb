@@ -30,8 +30,6 @@ const Controls = ({
         visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut", delay: 1.0 } },
       }}
     >
-      <button onClick={calculateNextMove}>Calculate Next Move</button>
-      
       <div className="turn-options">
         <label>Set Turn:</label>
         <button onClick={() => setTurn('white')}>White to move</button>

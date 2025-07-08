@@ -30,12 +30,6 @@ const EvaluationSection = ({
         <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
         <div className="evaluation-bar-black" style={{ height: `${blackHeight}%` }}></div>
       </div>
-      <div className="game-action-buttons">
-        <button onClick={resetGame} title="New Game"><span className="icon-new-game"></span></button>
-        <button onClick={flipBoard} title="Flip Board"><span className="icon-flip-board"></span></button>
-        <button onClick={undoMove} title="Undo"><span className="icon-undo"></span></button>
-        <button onClick={redoMove} title="Redo"><span className="icon-redo"></span></button>
-      </div>
     </motion.div>
   );
 };

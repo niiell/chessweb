@@ -1,0 +1,23 @@
+.fab {
+  position: fixed;
+  bottom: 30px;
+  right: 100px;
+  background: var(--gradient-accent);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 50px; /* Pill shape */
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fab:before {
+  content: '\26A1'; /* High Voltage Sign for analysis */
+  font-size: 1.2em;
+}
