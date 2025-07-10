@@ -102,10 +102,14 @@ function startStockfish() {
         io.emit('stockfish_status', { status: 'error', message: err.message });
     });
 
-    stockfishProcess.stdin.write('uci\n');
-    // stockfishProcess.stdin.write('setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"\n');
-    // stockfishProcess.stdin.write('setoption name Use Syzygy value true\n');
-    stockfishProcess.stdin.write('isready\n');
+    stockfishProcess.stdin.write(`uci
+`);
+    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"
+`);
+    stockfishProcess.stdin.write(`setoption name Use Syzygy value true
+`);
+    stockfishProcess.stdin.write(`isready
+`);
 }
 
 app.post('/make-move', (req, res) => {

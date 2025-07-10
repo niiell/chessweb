@@ -172,6 +172,8 @@ function App() {
 
   const calculateNextMove = () => {
     console.log('calculateNextMove called');
+    sendCommand('stop'); // Stop any ongoing analysis
+
     let currentFen = fen;
     if (analyzeSide !== 'current') {
       const parts = fen.split(' ');
