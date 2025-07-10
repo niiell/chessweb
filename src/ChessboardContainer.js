@@ -12,18 +12,20 @@ const ChessboardContainer = ({
       <div className="chessboard-container">
         <Chessboard
           id="graphite-chessboard"
-          position={fen}
-          onPieceDrop={onDrop}
-          boardOrientation={boardOrientation}
-          animationDuration={300}
-          arePiecesDraggable={true}
-          customDarkSquareStyle={{ backgroundColor: 'var(--board-dark)' }}
-          customLightSquareStyle={{ backgroundColor: 'var(--board-light)' }}
-          customBoardStyle={{
-            borderRadius: '6px',
-            boxShadow: `0 5px 15px var(--shadow-color)`,
+          options={{
+            position: fen,
+            onPieceDrop: onDrop,
+            boardOrientation: boardOrientation,
+            animationDuration: 300,
+            arePiecesDraggable: true,
+            customDarkSquareStyle: { backgroundColor: 'var(--board-dark)' },
+            customLightSquareStyle: { backgroundColor: 'var(--board-light)' },
+            customBoardStyle: {
+              borderRadius: '6px',
+              boxShadow: `0 5px 15px var(--shadow-color)`,
+            },
+            customArrows: lastMove ? [[lastMove.from, lastMove.to, 'var(--accent-primary)']] : [],
           }}
-          customArrows={lastMove ? [[lastMove.from, lastMove.to, 'var(--accent-primary)']] : []}
         />
       </div>
     </div>

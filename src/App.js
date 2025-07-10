@@ -112,9 +112,19 @@ function App() {
     }
   }
 
-  const onDrop = (sourceSquare, targetSquare) => {
+  const onDrop = ({ sourceSquare, targetSquare }) => {
     const gameCopy = new Chess(fen);
-    const move = gameCopy.move({ from: sourceSquare, to: targetSquare, promotion: 'q' });
+    const moveOptions = { from: sourceSquare, to: targetSquare };
+
+    // Check for pawn promotion
+    const piece = gameCopy.get(sourceSquare);
+    if (piece && piece.type === 'p' &&
+       ((piece.color === 'w' && targetSquare[1] === '8') ||
+        (piece.color === 'b' && targetSquare[1] === '1'))) {
+      moveOptions.promotion = 'q'; // Default to queen promotion
+    }
+
+    const move = gameCopy.move(moveOptions);
 
     if (move === null) return false; // Illegal move
 
