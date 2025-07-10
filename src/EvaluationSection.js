@@ -1,7 +1,7 @@
 import React from 'react';
 import './EvaluationSection.css';
 
-const EvaluationSection = ({ evaluation, orientation, whiteHeight }) => {
+const EvaluationSection = ({ evaluation, orientation, whiteHeight, isDepthAnalysisEnabled }) => {
   const getFormattedEval = () => {
     if (evaluation.score === null) return '0.0';
 
@@ -19,12 +19,11 @@ const EvaluationSection = ({ evaluation, orientation, whiteHeight }) => {
   return (
     <div className="panel evaluation-section">
       <div className="evaluation-display">
-        <div className="evaluation-bar">
-          <div className="evaluation-bar-white" style={{ height: `${whiteHeight}%` }}></div>
-        </div>
+        
         <div className="evaluation-score">
           <span>{getFormattedEval()}</span>
         </div>
+        {evaluation.depth && isDepthAnalysisEnabled && <div className="evaluation-depth">Depth: {evaluation.depth}</div>}
       </div>
       {/* Other evaluation info can go here */}
     </div>

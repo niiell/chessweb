@@ -19,7 +19,6 @@ const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 
 const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize }) => {
   
-
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
     setEngineSettings.setThreads(value);
@@ -30,6 +29,10 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
     const value = parseInt(e.target.value, 10);
     setEngineSettings.setHashSize(value);
     sendCommand(`setoption name Hash value ${value}`);
+  };
+
+  const handleDepthAnalysisToggle = (e) => {
+    setEngineSettings.setIsDepthAnalysisEnabled(e.target.checked);
   };
 
   return (
@@ -83,6 +86,31 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
           ))}
         </select>
       </div>
+
+      <div className="control-group">
+        <label htmlFor="depth-analysis-toggle">Enable Depth Analysis</label>
+        <input 
+          type="checkbox" 
+          id="depth-analysis-toggle"
+          checked={engineSettings.isDepthAnalysisEnabled}
+          onChange={handleDepthAnalysisToggle}
+        />
+      </div>
+
+      {engineSettings.isDepthAnalysisEnabled && (
+        <div className="control-group">
+          <label htmlFor="depth">Search Depth</label>
+          <select 
+            id="depth"
+            value={engineSettings.depth}
+            onChange={(e) => setEngineSettings.setDepth(parseInt(e.target.value, 10))}
+          >
+            {[10, 15, 20, 25, 30, 35, 40].map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="control-group">
         <label htmlFor="threads">CPU Threads</label>

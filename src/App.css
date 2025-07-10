@@ -55,7 +55,12 @@
 
 .evaluation-section {
   grid-area: evaluation;
-  animation-delay: 0.2s; /* Stagger animation */
+  display: flex;
+  align-items: stretch; /* Make children stretch to fill height */
+  padding: 0; /* Remove padding from panel to allow bar to fill */
+  border: none; /* Remove border from panel */
+  box-shadow: none; /* Remove shadow from panel */
+  background: none; /* Remove background from panel */
 }
 
 .chessboard-container-wrapper {

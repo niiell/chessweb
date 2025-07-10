@@ -1,26 +1,11 @@
 
 .evaluation-display {
   display: flex;
+  flex-direction: column; /* Stack score and depth vertically */
   align-items: center;
-  gap: 15px;
-  width: 100%;
-}
-
-.evaluation-bar {
-  width: 12px;
-  height: 200px;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column-reverse; /* White at bottom, black at top */
-}
-
-.evaluation-bar-white {
-  width: 100%;
-  background-color: #FFFFFF;
-  transition: height 0.3s ease;
+  gap: 5px; /* Reduce gap as bar is removed */
+  height: 100%; /* Ensure it takes full height */
+  justify-content: center; /* Center content vertically */
 }
 
 .evaluation-score {
@@ -29,7 +14,7 @@
   color: var(--text-primary);
 }
 
-/* In dark mode, the black part of the bar is just the absence of the white part */
-[data-theme='dark'] .evaluation-bar-white {
-    background-color: var(--text-primary);
+.evaluation-depth {
+  font-size: 0.9em;
+  color: var(--text-secondary);
 }

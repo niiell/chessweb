@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Chess } from 'chess.js';
 import { io } from 'socket.io-client';
@@ -21,6 +22,7 @@ function App() {
   const [lastMove, setLastMove] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [analyzeSide, setAnalyzeSide] = useState('current'); // 'current', 'white', 'black'
+  const [isDepthAnalysisEnabled, setIsDepthAnalysisEnabled] = useState(false); // New state for depth analysis toggle
 
   const [showFenModal, setShowFenModal] = useState(false);
   const [showPgnModal, setShowPgnModal] = useState(false);
@@ -29,6 +31,7 @@ function App() {
 
   // Engine settings
   const [movetime, setMovetime] = useState(1000);
+  const [depth, setDepth] = useState(20); // New state for search depth
   const [threads, setThreads] = useState(4);
   const [maxThreads, setMaxThreads] = useState(navigator.hardwareConcurrency || 4);
   const [hashSize, setHashSize] = useState(128);
@@ -75,7 +78,7 @@ function App() {
     socket.current.on('stockfish_output', (data) => {
       console.log('Received Stockfish output:', data); // Added log
         if (data.type === 'info' && data.score) {
-          setStockfishEval({ score: data.score.value, type: data.score.type });
+          setStockfishEval({ score: data.score.value, type: data.score.type, depth: data.depth });
         } else if (data.type === 'bestmove') {
           console.log('Received bestmove from Stockfish:', data.move); // Added log
           const gameCopy = new Chess(analysisFenRef.current || fen); // Use the analysis FEN if available
@@ -176,7 +179,11 @@ function App() {
     }
     analysisFenRef.current = currentFen;
     sendCommand(`position fen ${currentFen}`);
-    sendCommand(`go movetime ${movetime}`);
+    if (isDepthAnalysisEnabled) {
+      sendCommand(`go depth ${depth}`);
+    } else {
+      sendCommand(`go movetime ${movetime}`);
+    }
   };
 
   const resetGame = () => {
@@ -264,6 +271,7 @@ function App() {
             evaluation={stockfishEval} 
             orientation={boardOrientation}
             whiteHeight={whiteHeight}
+            isDepthAnalysisEnabled={isDepthAnalysisEnabled}
           />
         </Suspense>
 
@@ -285,8 +293,8 @@ function App() {
             onRedo={redoMove}
             canUndo={historyPointer > 0}
             canRedo={historyPointer < moveHistory.length - 1}
-            engineSettings={{ movetime, threads, hashSize, maxThreads, maxHashSize }}
-            setEngineSettings={{ setMovetime, setThreads, setHashSize }}
+            engineSettings={{ movetime, threads, hashSize, maxThreads, maxHashSize, depth, isDepthAnalysisEnabled }}
+            setEngineSettings={{ setMovetime, setThreads, setHashSize, setDepth, setIsDepthAnalysisEnabled }}
             sendCommand={sendCommand}
             analyzeSide={analyzeSide}
             setAnalyzeSide={setAnalyzeSide}
