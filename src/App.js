@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+/* eslint-disable no-undef */
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Chess } from 'chess.js';
 import { io } from 'socket.io-client';
