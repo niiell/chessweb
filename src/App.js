@@ -24,6 +24,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [analyzeSide, setAnalyzeSide] = useState('current'); // 'current', 'white', 'black'
   const [isDepthAnalysisEnabled, setIsDepthAnalysisEnabled] = useState(false); // New state for depth analysis toggle
+  const [isAutoMoveEnabled, setIsAutoMoveEnabled] = useState(false);
 
   const [showFenModal, setShowFenModal] = useState(false);
   const [showPgnModal, setShowPgnModal] = useState(false);
@@ -282,6 +283,8 @@ function App() {
             onDrop={onDrop}
             boardOrientation={boardOrientation}
             lastMove={lastMove}
+            isAutoMoveEnabled={isAutoMoveEnabled}
+            calculateNextMove={calculateNextMove}
           />
         </Suspense>
 
@@ -301,6 +304,8 @@ function App() {
             setAnalyzeSide={setAnalyzeSide}
             onFenClick={handleFenClick}
             onPgnClick={handlePgnClick}
+            isAutoMoveEnabled={isAutoMoveEnabled}
+            setIsAutoMoveEnabled={setIsAutoMoveEnabled}
           />
         </Suspense>
       </main>

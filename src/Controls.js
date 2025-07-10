@@ -17,7 +17,7 @@ const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5L5 12l7 7z"></path><path d="M19 12H5"></path></svg>;
 const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
 
-const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize }) => {
+const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled }) => {
   
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
@@ -75,16 +75,13 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
       </div>
 
       <div className="control-group">
-        <label htmlFor="movetime">Analysis Time (ms)</label>
-        <select 
-          id="movetime"
-          value={engineSettings.movetime}
-          onChange={(e) => setEngineSettings.setMovetime(parseInt(e.target.value, 10))}
-        >
-          {[1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000].map(time => (
-            <option key={time} value={time}>{time}</option>
-          ))}
-        </select>
+        <label htmlFor="auto-move-toggle">Auto-move Opponent</label>
+        <input 
+          type="checkbox" 
+          id="auto-move-toggle"
+          checked={isAutoMoveEnabled}
+          onChange={(e) => setIsAutoMoveEnabled(e.target.checked)}
+        />
       </div>
 
       <div className="control-group">
@@ -95,6 +92,19 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
           checked={engineSettings.isDepthAnalysisEnabled}
           onChange={handleDepthAnalysisToggle}
         />
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="movetime">Analysis Time (ms)</label>
+        <select 
+          id="movetime"
+          value={engineSettings.movetime}
+          onChange={(e) => setEngineSettings.setMovetime(parseInt(e.target.value, 10))}
+        >
+          {[1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000].map(time => (
+            <option key={time} value={time}>{time}</option>
+          ))}
+        </select>
       </div>
 
       {engineSettings.isDepthAnalysisEnabled && (
