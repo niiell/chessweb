@@ -19,6 +19,7 @@ function App() {
   const [moveHistory, setMoveHistory] = useState([game.fen()]); // Initialize with starting FEN
   const [historyPointer, setHistoryPointer] = useState(0); // Pointer to current position in history
   const [boardOrientation, setBoardOrientation] = useState('white');
+  const [userColor, setUserColor] = useState('white'); // New state for user's playing color
   const [stockfishEval, setStockfishEval] = useState({ score: null, type: 'cp' });
   const [lastMove, setLastMove] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +27,7 @@ function App() {
   const [isDepthAnalysisEnabled, setIsDepthAnalysisEnabled] = useState(false); // New state for depth analysis toggle
   const [isAutoMoveEnabled, setIsAutoMoveEnabled] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [enginePurpose, setEnginePurpose] = useState(null); // 'suggestion' or 'auto-move'
 
   const [showFenModal, setShowFenModal] = useState(false);
   const [showPgnModal, setShowPgnModal] = useState(false);
@@ -51,11 +53,6 @@ function App() {
 
   const socket = useRef(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500); // Shorter loading time
-    return () => clearTimeout(timer);
-  }, []);
-
   const sendCommand = React.useCallback((command) => {
     console.log('Sending command:', command);
     console.log('Socket connected status:', socket.current && socket.current.connected); // Added log
@@ -64,6 +61,27 @@ function App() {
     } else {
       console.warn('Socket not connected, command not sent:', command); // Added warning
     }
+  }, []);
+
+  const makeAutoOpponentMove = React.useCallback(() => {
+    console.log('makeAutoOpponentMove called');
+    setIsAnalyzing(true); // Start analysis
+    setEnginePurpose('auto-move'); // Set purpose to auto-move
+    sendCommand('stop'); // Stop any ongoing analysis
+
+    const currentFen = fen; // Always analyze for the current FEN
+    analysisFenRef.current = currentFen;
+    sendCommand(`position fen ${currentFen}`);
+    if (isDepthAnalysisEnabled) {
+      sendCommand(`go depth ${depth}`);
+    } else {
+      sendCommand(`go movetime ${movetime}`);
+    }
+  }, [fen, isDepthAnalysisEnabled, depth, movetime, sendCommand]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1500); // Shorter loading time
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -84,24 +102,44 @@ function App() {
           setStockfishEval({ score: data.score.value, type: data.score.type, depth: data.depth });
         } else if (data.type === 'bestmove') {
           setIsAnalyzing(false); // End analysis
-          console.log('Received bestmove from Stockfish:', data.move); // Added log
-          const gameCopy = new Chess(analysisFenRef.current || fen); // Use the analysis FEN if available
-          const moveResult = gameCopy.move(data.move, { sloppy: true }); // Added sloppy flag
-          if (moveResult) {
-            console.log('Bestmove applied successfully. New FEN:', gameCopy.fen()); // Added log
-            setFen(gameCopy.fen());
-            setLastMove({ from: moveResult.from, to: moveResult.to });
-            analysisFenRef.current = null; // Reset the analysis FEN
-          } else {
-            console.warn('Failed to apply bestmove:', data.move); // Added warning
+          console.log('Received bestmove from Stockfish:', data.move);
+
+          if (enginePurpose === 'suggestion') {
+            toast.info(`Suggested move: ${data.move}`);
+            console.log(`Suggested move: ${data.move}`);
+          } else if (enginePurpose === 'auto-move') {
+            const gameCopy = new Chess(analysisFenRef.current || fen); // Use the analysis FEN if available
+            const moveResult = gameCopy.move(data.move, { sloppy: true }); // Added sloppy flag
+            if (moveResult) {
+              console.log('Bestmove applied successfully. New FEN:', gameCopy.fen());
+              setFen(gameCopy.fen());
+              setLastMove({ from: moveResult.from, to: moveResult.to });
+              analysisFenRef.current = null; // Reset the analysis FEN
+            } else {
+              console.warn('Failed to apply bestmove:', data.move);
+            }
           }
+          setEnginePurpose(null); // Reset purpose after handling bestmove
         }
     });
 
     socket.current.on('stockfish_error', (error) => toast.error(`Engine Error: ${error}`));
 
     return () => socket.current.disconnect();
-  }, [sendCommand, threads, hashSize]);
+  }, [sendCommand, threads, hashSize, enginePurpose, fen, isAutoMoveEnabled, boardOrientation, makeAutoOpponentMove]);
+
+  // Effect to trigger auto-move when enabled and it's opponent's turn
+  useEffect(() => {
+    if (isAutoMoveEnabled) {
+      const turn = fen.split(' ')[1];
+      const playerIsWhite = userColor === 'white'; // Use userColor to determine player's side
+      const isOpponentTurn = (playerIsWhite && turn === 'b') || (!playerIsWhite && turn === 'w');
+
+      if (isOpponentTurn) {
+        makeAutoOpponentMove();
+      }
+    }
+  }, [isAutoMoveEnabled, fen, userColor, makeAutoOpponentMove]);
 
   // Calculate evaluation bar height
   let whiteHeight = 50;
@@ -172,12 +210,14 @@ function App() {
     }
   };
 
-  const calculateNextMove = () => {
-    console.log('calculateNextMove called');
+  const getEngineSuggestion = () => {
+    console.log('getEngineSuggestion called');
     setIsAnalyzing(true); // Start analysis
+    setEnginePurpose('suggestion'); // Set purpose to suggestion
     sendCommand('stop'); // Stop any ongoing analysis
 
     let currentFen = fen;
+    // For suggestions, respect the analyzeSide setting from the UI
     if (analyzeSide !== 'current') {
       const parts = fen.split(' ');
       parts[1] = analyzeSide === 'white' ? 'w' : 'b';
@@ -289,7 +329,8 @@ function App() {
             boardOrientation={boardOrientation}
             lastMove={lastMove}
             isAutoMoveEnabled={isAutoMoveEnabled}
-            calculateNextMove={calculateNextMove}
+            makeAutoOpponentMove={makeAutoOpponentMove}
+            userColor={userColor}
           />
         </Suspense>
 
@@ -297,7 +338,7 @@ function App() {
           <Controls
             onReset={resetGame}
             onFlip={flipBoard}
-            onAnalyze={calculateNextMove}
+            onAnalyze={getEngineSuggestion}
             onUndo={undoMove}
             onRedo={redoMove}
             canUndo={historyPointer > 0}
@@ -312,6 +353,8 @@ function App() {
             isAutoMoveEnabled={isAutoMoveEnabled}
             setIsAutoMoveEnabled={setIsAutoMoveEnabled}
             isAnalyzing={isAnalyzing}
+            userColor={userColor}
+            setUserColor={setUserColor}
           />
         </Suspense>
       </main>

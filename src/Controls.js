@@ -18,7 +18,7 @@ const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5L5 12l7 7z"></path><path d="M19 12H5"></path></svg>;
 const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
 
-const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled, isAnalyzing }) => {
+const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled, isAnalyzing, userColor, setUserColor }) => {
   
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
@@ -73,6 +73,18 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
           <IconButton onClick={onFenClick} icon={<FenIcon />} text="FEN" />
           <IconButton onClick={onPgnClick} icon={<PgnIcon />} text="PGN" />
         </div>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="userColor">Play as:</label>
+        <select
+          id="userColor"
+          value={userColor}
+          onChange={(e) => setUserColor(e.target.value)}
+        >
+          <option value="white">White</option>
+          <option value="black">Black</option>
+        </select>
       </div>
 
       <div className="control-group">

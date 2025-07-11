@@ -7,7 +7,8 @@ const ChessboardContainer = ({
   boardOrientation, 
   lastMove,
   isAutoMoveEnabled,
-  calculateNextMove
+  makeAutoOpponentMove,
+  userColor // New prop for user's playing color
 }) => {
   const prevFenRef = useRef(fen);
 
@@ -15,13 +16,13 @@ const ChessboardContainer = ({
     // Only run if the FEN has changed and auto-move is enabled.
     if (isAutoMoveEnabled && fen !== prevFenRef.current) {
       const turn = fen.split(' ')[1];
-      const playerIsWhite = boardOrientation === 'white';
+      const playerIsWhite = userColor === 'white'; // Use userColor to determine player's side
       const isOpponentTurn = (playerIsWhite && turn === 'b') || (!playerIsWhite && turn === 'w');
 
       if (isOpponentTurn) {
         // Delay the engine's move to feel more natural
         const timerId = setTimeout(() => {
-          calculateNextMove();
+          makeAutoOpponentMove(); // Changed from calculateNextMove
         }, 500);
 
         return () => clearTimeout(timerId);
@@ -29,7 +30,7 @@ const ChessboardContainer = ({
     }
     // Update the ref for the next render
     prevFenRef.current = fen;
-  }, [fen, isAutoMoveEnabled, calculateNextMove, boardOrientation]);
+  }, [fen, isAutoMoveEnabled, makeAutoOpponentMove, userColor]);
 
   return (
     <div className="chessboard-container-wrapper">
