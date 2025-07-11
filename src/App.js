@@ -167,41 +167,24 @@ function App() {
     console.log('onDrop: Current FEN:', fen);
     console.log('onDrop: Move Options:', moveOptions);
 
-    try {
-      const move = gameCopy.move(moveOptions);
-      console.log('onDrop: Move Result:', move);
+    const move = gameCopy.move(moveOptions);
 
-      if (move === null) {
-        toast.error('Illegal move!');
-        return false; // Should not happen if Chess.js throws, but good for safety
-      }
-
-      const newFen = gameCopy.fen();
-      setFen(newFen);
-      setLastMove({ from: move.from, to: move.to });
-
-      // Update move history
-      const newHistory = moveHistory.slice(0, historyPointer + 1);
-      setMoveHistory([...newHistory, newFen]);
-      setHistoryPointer(newHistory.length);
-
-      sendCommand(`position fen ${newFen}`);
-
-      // Check for check and checkmate after a legal move
-      if (gameCopy.in_checkmate()) {
-        checkmateSound.current.play();
-        toast.success('Checkmate!');
-      } else if (gameCopy.in_check()) {
-        checkSound.current.play();
-        toast.info('Check!');
-      }
-
-      return true;
-    } catch (error) {
+    if (move === null) {
       toast.error('Illegal move!');
-      console.error('Illegal move error:', error);
-      return false;
+      return false; // Illegal move
     }
+
+    const newFen = gameCopy.fen();
+    setFen(newFen);
+    setLastMove({ from: move.from, to: move.to });
+
+    // Update move history
+    const newHistory = moveHistory.slice(0, historyPointer + 1);
+    setMoveHistory([...newHistory, newFen]);
+    setHistoryPointer(newHistory.length);
+
+    sendCommand(`position fen ${newFen}`);
+    return true;
   };
 
   const undoMove = () => {
