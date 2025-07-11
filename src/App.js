@@ -25,6 +25,7 @@ function App() {
   const [analyzeSide, setAnalyzeSide] = useState('current'); // 'current', 'white', 'black'
   const [isDepthAnalysisEnabled, setIsDepthAnalysisEnabled] = useState(false); // New state for depth analysis toggle
   const [isAutoMoveEnabled, setIsAutoMoveEnabled] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [showFenModal, setShowFenModal] = useState(false);
   const [showPgnModal, setShowPgnModal] = useState(false);
@@ -82,6 +83,7 @@ function App() {
         if (data.type === 'info' && data.score) {
           setStockfishEval({ score: data.score.value, type: data.score.type, depth: data.depth });
         } else if (data.type === 'bestmove') {
+          setIsAnalyzing(false); // End analysis
           console.log('Received bestmove from Stockfish:', data.move); // Added log
           const gameCopy = new Chess(analysisFenRef.current || fen); // Use the analysis FEN if available
           const moveResult = gameCopy.move(data.move, { sloppy: true }); // Added sloppy flag
@@ -172,6 +174,7 @@ function App() {
 
   const calculateNextMove = () => {
     console.log('calculateNextMove called');
+    setIsAnalyzing(true); // Start analysis
     sendCommand('stop'); // Stop any ongoing analysis
 
     let currentFen = fen;
@@ -308,6 +311,7 @@ function App() {
             onPgnClick={handlePgnClick}
             isAutoMoveEnabled={isAutoMoveEnabled}
             setIsAutoMoveEnabled={setIsAutoMoveEnabled}
+            isAnalyzing={isAnalyzing}
           />
         </Suspense>
       </main>
