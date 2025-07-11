@@ -55,8 +55,8 @@
 
 /* Chessboard Colors */
 :root {
-  --board-light: #e0e0e0; /* Light gray */
-  --board-dark: #757575;  /* Dark gray */
+  --board-light: #B0C4DE; /* Light Steel Blue */
+  --board-dark: #708090;  /* Slate Gray */
 }
 
 .evaluation-section {
