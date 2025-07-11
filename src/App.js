@@ -164,8 +164,12 @@ function App() {
       moveOptions.promotion = 'q'; // Default to queen promotion
     }
 
+    console.log('onDrop: Current FEN:', fen);
+    console.log('onDrop: Move Options:', moveOptions);
+
     try {
       const move = gameCopy.move(moveOptions);
+      console.log('onDrop: Move Result:', move);
 
       if (move === null) {
         toast.error('Illegal move!');
