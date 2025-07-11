@@ -160,24 +160,30 @@ function App() {
       moveOptions.promotion = 'q'; // Default to queen promotion
     }
 
-    const move = gameCopy.move(moveOptions);
+    try {
+      const move = gameCopy.move(moveOptions);
 
-    if (move === null) {
+      if (move === null) {
+        toast.error('Illegal move!');
+        return false; // Should not happen if Chess.js throws, but good for safety
+      }
+
+      const newFen = gameCopy.fen();
+      setFen(newFen);
+      setLastMove({ from: move.from, to: move.to });
+
+      // Update move history
+      const newHistory = moveHistory.slice(0, historyPointer + 1);
+      setMoveHistory([...newHistory, newFen]);
+      setHistoryPointer(newHistory.length);
+
+      sendCommand(`position fen ${newFen}`);
+      return true;
+    } catch (error) {
       toast.error('Illegal move!');
-      return false; // Illegal move
+      console.error('Illegal move error:', error);
+      return false;
     }
-
-    const newFen = gameCopy.fen();
-    setFen(newFen);
-    setLastMove({ from: move.from, to: move.to });
-
-    // Update move history
-    const newHistory = moveHistory.slice(0, historyPointer + 1);
-    setMoveHistory([...newHistory, newFen]);
-    setHistoryPointer(newHistory.length);
-
-    sendCommand(`position fen ${newFen}`);
-    return true;
   };
 
   const undoMove = () => {
