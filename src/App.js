@@ -162,7 +162,10 @@ function App() {
 
     const move = gameCopy.move(moveOptions);
 
-    if (move === null) return false; // Illegal move
+    if (move === null) {
+      toast.error('Illegal move!');
+      return false; // Illegal move
+    }
 
     const newFen = gameCopy.fen();
     setFen(newFen);
