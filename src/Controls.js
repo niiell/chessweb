@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Spinner from './Spinner'; // Import the Spinner component
 
 // Reusable Icon Button Component
@@ -19,6 +19,33 @@ const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
 
 const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled, userColor, setUserColor }) => {
+  const [engines, setEngines] = useState([]);
+  const [selectedEngine, setSelectedEngine] = useState('');
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/engines')
+      .then(res => res.json())
+      .then(data => {
+        setEngines(data);
+        if (data.length > 0) {
+          setSelectedEngine(data[0]); // Select the first engine by default
+        }
+      })
+      .catch(err => console.error('Error fetching engines:', err));
+  }, []);
+
+  const handleEngineChange = (e) => {
+    const engineName = e.target.value;
+    setSelectedEngine(engineName);
+    fetch('http://localhost:3001/api/select-engine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ engineName })
+    })
+    .then(res => res.json())
+    .then(data => console.log(data.message))
+    .catch(err => console.error('Error selecting engine:', err));
+  };
   
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
@@ -57,6 +84,15 @@ const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSet
           <IconButton onClick={onFenClick} icon={<FenIcon />} text="FEN" />
           <IconButton onClick={onPgnClick} icon={<PgnIcon />} text="PGN" />
         </div>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="engine-select">Chess Engine</label>
+        <select id="engine-select" value={selectedEngine} onChange={handleEngineChange}>
+          {engines.map(engine => (
+            <option key={engine} value={engine}>{engine}</option>
+          ))}
+        </select>
       </div>
 
       <div className="control-group">

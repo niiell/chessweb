@@ -4,6 +4,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const { Chess } = require('chess.js');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,7 +20,19 @@ const port = 3001;
 app.use(cors());
 app.use(express.json());
 
-const STOCKFISH_PATH = '../stockfish/stockfish-windows-x86-64-avx2.exe';
+app.get('/api/engines', (req, res) => {
+    fs.readdir(ENGINES_DIR, (err, files) => {
+        if (err) {
+            console.error('Error reading engines directory:', err);
+            return res.status(500).send({ message: 'Could not retrieve engine list.' });
+        }
+        const engineFiles = files.filter(file => file.endsWith('.exe'));
+        res.send(engineFiles);
+    });
+});
+
+const ENGINES_DIR = path.join(__dirname, '../chessengines');
+let currentEnginePath = path.join(ENGINES_DIR, 'stockfish-windows-x86-64-avx2.exe'); // Default engine
 
 let stockfishProcess;
 let outputBuffer = '';
@@ -49,7 +63,7 @@ function resetMultiPV() {
 }
 
 function startStockfish() {
-    stockfishProcess = spawn(STOCKFISH_PATH);
+    stockfishProcess = spawn(currentEnginePath);
 
     stockfishProcess.stdout.on('data', (data) => {
         const rawOutput = data.toString();
@@ -74,12 +88,18 @@ function startStockfish() {
                 }
                 const matchScore = line.match(/score (cp|mate) (-?\d+)/);
                 const matchDepth = line.match(/depth (\d+)/);
+                const matchNodes = line.match(/nodes (\d+)/);
+                const matchNps = line.match(/nps (\d+)/);
+                const matchtbhits = line.match(/tbhits (\d+)/);
                 const parsedOutput = {
                     type: 'info',
                     raw: line,
                     score: matchScore ? { type: matchScore[1], value: parseInt(matchScore[2], 10) } : null,
                     pv: matchPv ? matchPv[1].split(' ') : [],
                     depth: matchDepth ? parseInt(matchDepth[1], 10) : null,
+                    nodes: matchNodes ? parseInt(matchNodes[1], 10) : null,
+                    nps: matchNps ? parseInt(matchNps[1], 10) : null,
+                    tbhits: matchtbhits ? parseInt(matchtbhits[1], 10) : null,
                 };
                 io.emit('stockfish_output', parsedOutput);
                 console.log(`[Backend] Emitted info: ${JSON.stringify(parsedOutput)}`);
@@ -109,7 +129,15 @@ function startStockfish() {
     });
 
     stockfishProcess.stdin.write(`uci
-`);    stockfishProcess.stdin.write(`isready
+`);
+    console.log('[Backend] Setting Syzygy tablebase options...');
+    stockfishProcess.stdin.write(`setoption name SyzygyPath value ../syzygy_tablebases/3-4-5 2022
+`);
+    stockfishProcess.stdin.write(`setoption name SyzygyProbeDepth value 1
+`);
+    stockfishProcess.stdin.write(`setoption name Syzygy50MoveRule value true
+`);
+    stockfishProcess.stdin.write(`isready
 `);}let currentFenForAnalysis = ''; // Initialize currentFenForAnalysis
 
 app.post('/make-move', (req, res) => {
@@ -139,6 +167,25 @@ app.post('/set-option', (req, res) => {
     } else {
         res.status(400).send({ message: 'Invalid option or Stockfish not running' });
     }
+});
+
+app.post('/api/select-engine', (req, res) => {
+    const { engineName } = req.body;
+    const newEnginePath = path.join(ENGINES_DIR, engineName);
+
+    if (!fs.existsSync(newEnginePath)) {
+        return res.status(400).send({ message: 'Engine not found.' });
+    }
+
+    currentEnginePath = newEnginePath;
+
+    if (stockfishProcess) {
+        stockfishProcess.kill();
+    }
+
+    startStockfish();
+
+    res.send({ message: `Engine changed to ${engineName}` });
 });
 
 
