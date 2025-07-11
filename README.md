@@ -1,70 +1,98 @@
-# Getting Started with Create React App
+# ChessWeb
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+ChessWeb is a web-based chess application that allows users to play against a powerful chess engine, analyze positions, and explore game variations. It features a clean, modern interface built with React and a Node.js backend for seamless communication with UCI-compatible chess engines.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+*   **Interactive Chessboard:** Play moves, undo/redo, and reset games.
+*   **Engine Integration:** Connects to UCI-compatible chess engines (e.g., Stockfish) for analysis and opponent moves.
+*   **Engine Selection:** Easily switch between different chess engines located in the `chessengines` directory.
+*   **Configurable Engine Settings:** Adjust parameters like analysis depth, movetime, CPU threads, and hash size.
+*   **Syzygy Tablebase Support:** Utilizes Syzygy tablebases for accurate endgame analysis (requires tablebases to be present).
+*   **FEN/PGN Support:** Import and export game positions using FEN (Forsyth-Edwards Notation) and PGN (Portable Game Notation).
+*   **Auto-Move Opponent:** Enable the engine to automatically make moves for the opponent.
+*   **Board Orientation:** Flip the board to view from white's or black's perspective.
+*   **Real-time Evaluation Bar:** Visual representation of the engine's evaluation.
 
-### `npm start`
+## Technologies Used
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+*   **Frontend:** React.js, HTML, CSS
+*   **Backend:** Node.js, Express.js, Socket.IO
+*   **Chess Logic:** `chess.js` library
+*   **Chess Engine Communication:** `child_process` (Node.js)
+*   **Styling:** Custom CSS
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Setup and Installation
 
-### `npm test`
+Follow these steps to get ChessWeb up and running on your local machine.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `npm run build`
+*   Node.js (LTS version recommended)
+*   npm (Node Package Manager)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 1. Clone the Repository
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+git clone https://github.com/niiell/chessweb.git
+cd chessweb
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 2. Install Dependencies
 
-### `npm run eject`
+Install dependencies for both the frontend and backend:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+# Install frontend dependencies
+npm install
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Install backend dependencies
+cd backend
+npm install
+cd ..
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 3. Place Chess Engines
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Place your UCI-compatible chess engine executables (e.g., `.exe` files for Windows) into the `chessengines/` directory. The application is configured to look for engines in this folder.
 
-## Learn More
+### 4. (Optional) Setup Syzygy Tablebases
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+If you wish to use Syzygy tablebases for enhanced endgame analysis, download them and place them in the `syzygy_tablebases/` directory. The current configuration expects them in `syzygy_tablebases/3-4-5 2022`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 5. Start the Backend Server
 
-### Code Splitting
+Navigate to the project root and start the backend server:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+cd backend
+node server.js &
+cd ..
+```
+*Note: The `&` at the end runs the server in the background. On Windows, you might need to use `start node server.js` or run it in a separate terminal window.*
 
-### Analyzing the Bundle Size
+### 6. Start the Frontend Development Server
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+From the project root, start the React development server:
 
-### Making a Progressive Web App
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+This will open the application in your browser, usually at `http://localhost:3000`.
 
-### Advanced Configuration
+## Usage
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+*   **Playing Moves:** Click on a piece and then click on the target square to make a move.
+*   **Engine Selection:** Use the dropdown menu in the controls panel to select your preferred chess engine.
+*   **Engine Settings:** Adjust the engine's analysis parameters (movetime, depth, threads, hash size) using the controls.
+*   **FEN/PGN:** Use the FEN and PGN buttons to import or export game data.
+*   **Auto-Move:** Toggle the "Auto-move Opponent" checkbox to have the engine play for the opposing side.
 
-### Deployment
+## Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Contributions are welcome! Please feel free to submit issues or pull requests.
 
-### `npm run build` fails to minify
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+[Specify your license here, e.g., MIT License]
