@@ -53,6 +53,12 @@
   opacity: 0; /* Start hidden for animation */
 }
 
+/* Chessboard Colors */
+:root {
+  --board-light: #e0e0e0; /* Light gray */
+  --board-dark: #757575;  /* Dark gray */
+}
+
 .evaluation-section {
   grid-area: evaluation;
   display: flex;
