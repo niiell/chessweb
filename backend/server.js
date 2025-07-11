@@ -171,10 +171,16 @@ app.post('/set-option', (req, res) => {
 
 app.post('/api/select-engine', (req, res) => {
     const { engineName } = req.body;
-    const newEnginePath = path.join(ENGINES_DIR, engineName);
+    const newEnginePath = path.resolve(ENGINES_DIR, engineName);
 
-    if (!fs.existsSync(newEnginePath)) {
-        return res.status(400).send({ message: 'Engine not found.' });
+    try {
+        const safePath = fs.realpathSync(newEnginePath);
+        if (!safePath.startsWith(ENGINES_DIR) || !fs.existsSync(safePath)) {
+            return res.status(400).send({ message: 'Engine not found or invalid path.' });
+        }
+        currentEnginePath = safePath;
+    } catch (e) {
+        return res.status(400).send({ message: 'Invalid engine path.' });
     }
 
     currentEnginePath = newEnginePath;
