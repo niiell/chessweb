@@ -6,6 +6,7 @@ const cors = require('cors');
 const { Chess } = require('chess.js');
 const fs = require('fs');
 const path = require('path');
+const escapeHtml = require('escape-html');
 
 const app = express();
 const server = http.createServer(app);
@@ -26,7 +27,9 @@ app.get('/api/engines', (req, res) => {
             console.error('Error reading engines directory:', err);
             return res.status(500).send({ message: 'Could not retrieve engine list.' });
         }
-        const engineFiles = files.filter(file => file.endsWith('.exe'));
+        const engineFiles = files
+            .filter(file => file.endsWith('.exe'))
+            .map(file => escapeHtml(file));
         res.send(engineFiles);
     });
 });
