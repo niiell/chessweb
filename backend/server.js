@@ -35,7 +35,8 @@ app.get('/api/engines', (req, res) => {
 });
 
 const ENGINES_DIR = path.join(__dirname, '../chessengines');
-let currentEnginePath = path.join(ENGINES_DIR, 'stockfish-windows-x86-64-avx2.exe'); // Default engine
+const ALLOWED_ENGINES = ['stockfish-windows-x86-64-avx2.exe', 'another-engine.exe']; // Allowlist for engines
+let currentEnginePath = path.join(ENGINES_DIR, ALLOWED_ENGINES[0]); // Default engine
 
 let stockfishProcess;
 let outputBuffer = '';
@@ -66,7 +67,7 @@ function resetMultiPV() {
 }
 
 function startStockfish() {
-    stockfishProcess = spawn(currentEnginePath);
+    stockfishProcess = spawn(currentEnginePath, [], { shell: false });
 
     stockfishProcess.stdout.on('data', (data) => {
         const rawOutput = data.toString();
@@ -174,7 +175,12 @@ app.post('/set-option', (req, res) => {
 
 app.post('/api/select-engine', (req, res) => {
     const { engineName } = req.body;
-    const newEnginePath = path.resolve(ENGINES_DIR, engineName);
+
+    if (!ALLOWED_ENGINES.includes(engineName)) {
+        return res.status(400).send({ message: 'Engine not found or invalid name.' });
+    }
+
+    const newEnginePath = path.join(ENGINES_DIR, engineName);
 
     try {
         const safePath = fs.realpathSync(newEnginePath);
@@ -185,8 +191,6 @@ app.post('/api/select-engine', (req, res) => {
     } catch (e) {
         return res.status(400).send({ message: 'Invalid engine path.' });
     }
-
-    currentEnginePath = newEnginePath;
 
     if (stockfishProcess) {
         stockfishProcess.kill();
