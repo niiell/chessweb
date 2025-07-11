@@ -14,6 +14,10 @@ const ChessboardContainer = React.lazy(() => import('./ChessboardContainer'));
 const Controls = React.lazy(() => import('./Controls'));
 
 function App() {
+  // Audio objects for check and checkmate sounds
+  const checkSound = useRef(new Audio('/assets/sounds/check.mp3'));
+  const checkmateSound = useRef(new Audio('/assets/sounds/checkmate.mp3'));
+
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
   const [moveHistory, setMoveHistory] = useState([game.fen()]); // Initialize with starting FEN
@@ -178,6 +182,16 @@ function App() {
       setHistoryPointer(newHistory.length);
 
       sendCommand(`position fen ${newFen}`);
+
+      // Check for check and checkmate after a legal move
+      if (gameCopy.in_checkmate()) {
+        checkmateSound.current.play();
+        toast.success('Checkmate!');
+      } else if (gameCopy.in_check()) {
+        checkSound.current.play();
+        toast.info('Check!');
+      }
+
       return true;
     } catch (error) {
       toast.error('Illegal move!');
