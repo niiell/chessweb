@@ -23,11 +23,10 @@ function App() {
   const [stockfishEval, setStockfishEval] = useState({ score: null, type: 'cp' });
   const [lastMove, setLastMove] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [analyzeSide, setAnalyzeSide] = useState('current'); // 'current', 'white', 'black'
   const [isDepthAnalysisEnabled, setIsDepthAnalysisEnabled] = useState(false); // New state for depth analysis toggle
   const [isAutoMoveEnabled, setIsAutoMoveEnabled] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [enginePurpose, setEnginePurpose] = useState(null); // 'suggestion' or 'auto-move'
+  const [enginePurpose, setEnginePurpose] = useState(null); // 'auto-move' or 'user-analysis'
 
   const [showFenModal, setShowFenModal] = useState(false);
   const [showPgnModal, setShowPgnModal] = useState(false);
@@ -49,9 +48,8 @@ function App() {
     return 2048; // Default to 2GB if deviceMemory is not available
   });
 
-  const analysisFenRef = useRef(null);
-
   const socket = useRef(null);
+  const analysisFenRef = useRef(null);
 
   const sendCommand = React.useCallback((command) => {
     console.log('Sending command:', command);
@@ -101,32 +99,25 @@ function App() {
         if (data.type === 'info' && data.score) {
           setStockfishEval({ score: data.score.value, type: data.score.type, depth: data.depth });
         } else if (data.type === 'bestmove') {
-          setIsAnalyzing(false); // End analysis
           console.log('Received bestmove from Stockfish:', data.move);
 
-          if (enginePurpose === 'suggestion') {
-            toast.info(`Suggested move: ${data.move}`);
-            console.log(`Suggested move: ${data.move}`);
-          } else if (enginePurpose === 'auto-move') {
-            const gameCopy = new Chess(analysisFenRef.current || fen); // Use the analysis FEN if available
-            const moveResult = gameCopy.move(data.move, { sloppy: true }); // Added sloppy flag
-            if (moveResult) {
-              console.log('Bestmove applied successfully. New FEN:', gameCopy.fen());
-              setFen(gameCopy.fen());
-              setLastMove({ from: moveResult.from, to: moveResult.to });
-              analysisFenRef.current = null; // Reset the analysis FEN
-            } else {
-              console.warn('Failed to apply bestmove:', data.move);
-            }
+          // Only handle auto-move logic
+          const gameCopy = new Chess(fen); // Use the current FEN
+          const moveResult = gameCopy.move(data.move, { sloppy: true });
+          if (moveResult) {
+            console.log('Bestmove applied successfully. New FEN:', gameCopy.fen());
+            setFen(gameCopy.fen());
+            setLastMove({ from: moveResult.from, to: moveResult.to });
+          } else {
+            console.warn('Failed to apply bestmove:', data.move);
           }
-          setEnginePurpose(null); // Reset purpose after handling bestmove
         }
     });
 
     socket.current.on('stockfish_error', (error) => toast.error(`Engine Error: ${error}`));
 
     return () => socket.current.disconnect();
-  }, [sendCommand, threads, hashSize, enginePurpose, fen, isAutoMoveEnabled, boardOrientation, makeAutoOpponentMove]);
+  }, [sendCommand, threads, hashSize, fen, isAutoMoveEnabled, userColor, makeAutoOpponentMove]);
 
   // Effect to trigger auto-move when enabled and it's opponent's turn
   useEffect(() => {
@@ -207,29 +198,6 @@ function App() {
       sendCommand(`position fen ${moveHistory[newPointer]}`);
     } else {
       toast.info('No moves to redo.');
-    }
-  };
-
-  const getEngineSuggestion = () => {
-    console.log('getEngineSuggestion called');
-    setIsAnalyzing(true); // Start analysis
-    setEnginePurpose('suggestion'); // Set purpose to suggestion
-    sendCommand('stop'); // Stop any ongoing analysis
-
-    let currentFen = fen;
-    // For suggestions, respect the analyzeSide setting from the UI
-    if (analyzeSide !== 'current') {
-      const parts = fen.split(' ');
-      parts[1] = analyzeSide === 'white' ? 'w' : 'b';
-      currentFen = parts.join(' ');
-      console.log(`Analyzing for ${analyzeSide}. Modified FEN: ${currentFen}`);
-    }
-    analysisFenRef.current = currentFen;
-    sendCommand(`position fen ${currentFen}`);
-    if (isDepthAnalysisEnabled) {
-      sendCommand(`go depth ${depth}`);
-    } else {
-      sendCommand(`go movetime ${movetime}`);
     }
   };
 
@@ -338,7 +306,6 @@ function App() {
           <Controls
             onReset={resetGame}
             onFlip={flipBoard}
-            onAnalyze={getEngineSuggestion}
             onUndo={undoMove}
             onRedo={redoMove}
             canUndo={historyPointer > 0}
@@ -346,13 +313,10 @@ function App() {
             engineSettings={{ movetime, threads, hashSize, maxThreads, maxHashSize, depth, isDepthAnalysisEnabled }}
             setEngineSettings={{ setMovetime, setThreads, setHashSize, setDepth, setIsDepthAnalysisEnabled }}
             sendCommand={sendCommand}
-            analyzeSide={analyzeSide}
-            setAnalyzeSide={setAnalyzeSide}
             onFenClick={handleFenClick}
             onPgnClick={handlePgnClick}
             isAutoMoveEnabled={isAutoMoveEnabled}
             setIsAutoMoveEnabled={setIsAutoMoveEnabled}
-            isAnalyzing={isAnalyzing}
             userColor={userColor}
             setUserColor={setUserColor}
           />

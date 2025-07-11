@@ -18,7 +18,7 @@ const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5L5 12l7 7z"></path><path d="M19 12H5"></path></svg>;
 const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
 
-const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, analyzeSide, setAnalyzeSide, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled, isAnalyzing, userColor, setUserColor }) => {
+const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled, userColor, setUserColor }) => {
   
   const handleThreadsChange = (e) => {
     const value = parseInt(e.target.value, 10);
@@ -38,22 +38,6 @@ const Controls = ({ onReset, onFlip, onAnalyze, onUndo, onRedo, canUndo, canRedo
 
   return (
     <div className="panel controls">
-      <div className="control-group">
-        <IconButton onClick={onAnalyze} icon={<AnalyzeIcon />} text="Next Move" className="button-primary" isAnalyzing={isAnalyzing} />
-      </div>
-
-      <div className="control-group">
-        <select
-          id="analyzeSide"
-          value={analyzeSide}
-          onChange={(e) => setAnalyzeSide(e.target.value)}
-        >
-          <option value="current">Current Turn</option>
-          <option value="white">White</option>
-          <option value="black">Black</option>
-        </select>
-      </div>
-
       <div className="control-group">
         <div className="button-group">
           <IconButton onClick={onReset} icon={<ResetIcon />} text="New Game" />

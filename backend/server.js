@@ -52,39 +52,45 @@ function startStockfish() {
     stockfishProcess = spawn(STOCKFISH_PATH);
 
     stockfishProcess.stdout.on('data', (data) => {
-        outputBuffer += data.toString();
-        const lines = outputBuffer.split('\n');
-        outputBuffer = lines.pop();
-        lines.forEach(line => {
-            const trimmedLine = line.trim();
-            if (!trimmedLine) return;
-            console.log(`[Stockfish Raw Output]: ${trimmedLine}`); // Added log for raw output
-            if (trimmedLine.startsWith('info')) {
-                const matchPv = trimmedLine.match(/ pv (.+)/);
+        const rawOutput = data.toString();
+        outputBuffer += rawOutput;
+        console.log(`[Stockfish Raw Output]: ${rawOutput.trim()}`); // Log all raw output
+
+        // Process complete lines
+        let newlineIndex;
+        while ((newlineIndex = outputBuffer.indexOf('\n')) !== -1) {
+            const line = outputBuffer.substring(0, newlineIndex).trim();
+            outputBuffer = outputBuffer.substring(newlineIndex + 1);
+
+            if (!line) continue;
+
+            if (line.startsWith('info')) {
+                const matchPv = line.match(/ pv (.+)/);
                 if (matchPv) {
                     const moves = matchPv[1].split(' ');
                     if (moves.length > 0) {
                         candidateMoves.push(moves[0]);
                     }
                 }
-                const matchScore = trimmedLine.match(/score (cp|mate) (-?\d+)/);
-                const matchDepth = trimmedLine.match(/depth (\d+)/);
+                const matchScore = line.match(/score (cp|mate) (-?\d+)/);
+                const matchDepth = line.match(/depth (\d+)/);
                 const parsedOutput = {
                     type: 'info',
-                    raw: trimmedLine,
+                    raw: line,
                     score: matchScore ? { type: matchScore[1], value: parseInt(matchScore[2], 10) } : null,
                     pv: matchPv ? matchPv[1].split(' ') : [],
                     depth: matchDepth ? parseInt(matchDepth[1], 10) : null,
                 };
                 io.emit('stockfish_output', parsedOutput);
-                console.log(`[Backend] Emitted info: ${JSON.stringify(parsedOutput)}`); // Added log for emitted info
-            } else if (trimmedLine.startsWith('bestmove')) {
-                const parts = trimmedLine.split(' ');
+                console.log(`[Backend] Emitted info: ${JSON.stringify(parsedOutput)}`);
+            } else if (line.startsWith('bestmove')) {
+                console.log(`[Backend] Detected bestmove line: ${line}`);
+                const parts = line.split(' ');
                 const bestMove = parts[1];
                 console.log(`[Backend] Emitting bestmove: ${bestMove}`);
                 io.emit('stockfish_output', { type: 'bestmove', move: bestMove, fen: currentFenForAnalysis });
             }
-        });
+        }
     });
 
     stockfishProcess.stderr.on('data', (data) => {
@@ -103,14 +109,8 @@ function startStockfish() {
     });
 
     stockfishProcess.stdin.write(`uci
-`);
-    stockfishProcess.stdin.write(`setoption name SyzygyPath value "../syzygy_tablebases/3-4-5 2022/"
-`);
-    stockfishProcess.stdin.write(`setoption name Use Syzygy value true
-`);
-    stockfishProcess.stdin.write(`isready
-`);
-}
+`);    stockfishProcess.stdin.write(`isready
+`);}let currentFenForAnalysis = ''; // Initialize currentFenForAnalysis
 
 app.post('/make-move', (req, res) => {
     const { move, currentFen } = req.body;
