@@ -43,6 +43,7 @@ const ChessboardContainer = ({
             boardOrientation: boardOrientation,
             animationDuration: 300,
             arePiecesDraggable: true,
+            allowDragOffBoard: false,
             customDarkSquareStyle: { backgroundColor: 'var(--board-dark)' },
             customLightSquareStyle: { backgroundColor: 'var(--board-light)' },
             customBoardStyle: {
