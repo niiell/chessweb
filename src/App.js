@@ -271,6 +271,19 @@ function App() {
       setFen(newGame.fen());
       setLastMove(null);
       setStockfishEval({ score: null, type: 'cp' });
+
+      // Rebuild the history from the imported PGN
+      const history = newGame.history({ verbose: true });
+      const newMoveHistory = [new Chess().fen()]; // Start with the initial position
+      const tempGame = new Chess();
+      history.forEach(move => {
+        tempGame.move(move);
+        newMoveHistory.push(tempGame.fen());
+      });
+      setMoveHistory(newMoveHistory);
+      setHistoryPointer(newMoveHistory.length - 1);
+
+
       toast.success('PGN imported successfully!');
       setShowPgnModal(false);
     } catch (error) {

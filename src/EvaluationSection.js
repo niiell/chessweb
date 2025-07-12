@@ -24,7 +24,6 @@ const EvaluationSection = ({ evaluation, orientation, whiteHeight, isDepthAnalys
           <span>{getFormattedEval()}</span>
         </div>
         {evaluation.depth && isDepthAnalysisEnabled && <div className="evaluation-depth">Depth: {evaluation.depth}</div>}
-        {evaluation.tbhits !== null && <div className="evaluation-tbhits">TB Hits: {evaluation.tbhits}</div>}
       </div>
       {/* Other evaluation info can go here */}
     </div>
