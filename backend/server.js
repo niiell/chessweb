@@ -35,8 +35,8 @@ app.get('/api/engines', (req, res) => {
 });
 
 const ENGINES_DIR = path.join(__dirname, '../chessengines');
-const ALLOWED_ENGINES = ['stockfish-windows-x86-64-avx2.exe', 'another-engine.exe']; // Allowlist for engines
-let currentEnginePath = path.join(ENGINES_DIR, ALLOWED_ENGINES[0]); // Default engine
+const ALLOWED_ENGINES = fs.readdirSync(ENGINES_DIR).filter(file => file.endsWith('.exe')); // Dynamically load all .exe engines
+let currentEnginePath = ALLOWED_ENGINES.length > 0 ? path.join(ENGINES_DIR, ALLOWED_ENGINES[0]) : null; // Default engine, or null if no engines found
 
 let stockfishProcess;
 let outputBuffer = '';
@@ -67,6 +67,10 @@ function resetMultiPV() {
 }
 
 function startStockfish() {
+    if (!currentEnginePath) {
+        console.error('[Backend] No chess engine selected or found. Cannot start Stockfish process.');
+        return;
+    }
     stockfishProcess = spawn(currentEnginePath, [], { shell: false });
 
     stockfishProcess.stdout.on('data', (data) => {
@@ -132,17 +136,20 @@ function startStockfish() {
         io.emit('stockfish_status', { status: 'error', message: err.message });
     });
 
-    stockfishProcess.stdin.write(`uci
-`);
+    stockfishProcess.stdin.write('uci\n');
     console.log('[Backend] Setting Syzygy tablebase options...');
-    stockfishProcess.stdin.write(`setoption name SyzygyPath value ../syzygy_tablebases/3-4-5 2022
+        const syzygyPath = path.normalize(path.join(__dirname, '../syzygy_tablebases/3-4-5 2022'));
+    console.log(`[Backend] SyzygyPath being sent to engine: ${syzygyPath}`);
+    stockfishProcess.stdin.write(`setoption name SyzygyPath value ${syzygyPath}
 `);
-    stockfishProcess.stdin.write(`setoption name SyzygyProbeDepth value 1
-`);
-    stockfishProcess.stdin.write(`setoption name Syzygy50MoveRule value true
-`);
-    stockfishProcess.stdin.write(`isready
-`);}let currentFenForAnalysis = ''; // Initialize currentFenForAnalysis
+    // Only send SyzygyProbeDepth and Syzygy50MoveRule if the engine is Stockfish
+    if (currentEnginePath.includes('stockfish')) {
+        stockfishProcess.stdin.write('setoption name SyzygyProbeDepth value 1\n');
+        stockfishProcess.stdin.write('setoption name Syzygy50MoveRule value true\n');
+    }
+    stockfishProcess.stdin.write('isready\n');
+}
+let currentFenForAnalysis = ''; // Initialize currentFenForAnalysis
 
 app.post('/make-move', (req, res) => {
     const { move, currentFen } = req.body;
