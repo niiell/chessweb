@@ -138,14 +138,18 @@ function startStockfish() {
 
     stockfishProcess.stdin.write('uci\n');
     console.log('[Backend] Setting Syzygy tablebase options...');
-        const syzygyPath = path.normalize(path.join(__dirname, '../syzygy_tablebases/3-4-5 2022'));
-    console.log(`[Backend] SyzygyPath being sent to engine: ${syzygyPath}`);
-    stockfishProcess.stdin.write(`setoption name SyzygyPath value ${syzygyPath}
-`);
-    // Only send SyzygyProbeDepth and Syzygy50MoveRule if the engine is Stockfish
-    if (currentEnginePath.includes('stockfish')) {
-        stockfishProcess.stdin.write('setoption name SyzygyProbeDepth value 1\n');
-        stockfishProcess.stdin.write('setoption name Syzygy50MoveRule value true\n');
+    const syzygyDir = path.join(__dirname, '../syzygy_tablebases/3-4-5 2022');
+    if (fs.existsSync(syzygyDir)) {
+        const syzygyPath = path.normalize(syzygyDir).replace(/\\/g, '/');
+        console.log(`[Backend] SyzygyPath being sent to engine: ${syzygyPath}`);
+        stockfishProcess.stdin.write(`setoption name SyzygyPath value ${syzygyPath}\n`);
+        // Only send SyzygyProbeDepth and Syzygy50MoveRule if the engine is Stockfish
+        if (currentEnginePath.includes('stockfish')) {
+            stockfishProcess.stdin.write('setoption name SyzygyProbeDepth value 1\n');
+            stockfishProcess.stdin.write('setoption name Syzygy50MoveRule value true\n');
+        }
+    } else {
+        console.log('[Backend] Syzygy tablebase directory not found. Skipping configuration.');
     }
     stockfishProcess.stdin.write('isready\n');
 }
