@@ -173,19 +173,15 @@ const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSet
 
       <div className="control-group">
         <label htmlFor="hash">Hash Size (MB)</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <input 
-            type="range" 
-            id="hash"
-            min="16" 
-            max={engineSettings.maxHashSize}
-            step="16" // Increment by 16MB
-            value={engineSettings.hashSize}
-            onChange={handleHashChange}
-            style={{ flex: 1 }}
-          />
-          <span style={{ minWidth: '40px', textAlign: 'right' }}>{engineSettings.hashSize} MB</span>
-        </div>
+        <select
+          id="hash"
+          value={engineSettings.hashSize}
+          onChange={handleHashChange}
+        >
+          {[16, 32, 64, 128, 256, 512, 1024, 2048, 4096].map(size => (
+            <option key={size} value={size}>{size}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
