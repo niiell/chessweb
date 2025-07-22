@@ -190,10 +190,13 @@ function App() {
   const undoMove = () => {
     if (historyPointer > 0) {
       const newPointer = historyPointer - 1;
+      const newFen = moveHistory[newPointer];
+      const newGame = new Chess(newFen);
       setHistoryPointer(newPointer);
-      setFen(moveHistory[newPointer]);
+      setFen(newFen);
+      setGame(newGame);
       setLastMove(null); // Clear last move on undo
-      sendCommand(`position fen ${moveHistory[newPointer]}`);
+      sendCommand(`position fen ${newFen}`);
     } else {
       toast.info('No moves to undo.');
     }
@@ -202,10 +205,13 @@ function App() {
   const redoMove = () => {
     if (historyPointer < moveHistory.length - 1) {
       const newPointer = historyPointer + 1;
+      const newFen = moveHistory[newPointer];
+      const newGame = new Chess(newFen);
       setHistoryPointer(newPointer);
-      setFen(moveHistory[newPointer]);
+      setFen(newFen);
+      setGame(newGame);
       setLastMove(null); // Clear last move on redo
-      sendCommand(`position fen ${moveHistory[newPointer]}`);
+      sendCommand(`position fen ${newFen}`);
     } else {
       toast.info('No moves to redo.');
     }
