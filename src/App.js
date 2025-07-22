@@ -245,12 +245,16 @@ function App() {
   const handleImportFen = () => {
     try {
       const newGame = new Chess(fenInput);
+      const newFen = newGame.fen();
       setGame(newGame);
-      setFen(newGame.fen());
+      setFen(newFen);
       setLastMove(null);
       setStockfishEval({ score: null, type: 'cp' });
+      setMoveHistory([newFen]); // Reset history
+      setHistoryPointer(0);   // Reset pointer
       toast.success('FEN imported successfully!');
       setShowFenModal(false);
+      sendCommand(`position fen ${newFen}`); // Sync engine
     } catch (error) {
       toast.error('Invalid FEN string.');
       console.error('FEN import error:', error);
@@ -265,16 +269,17 @@ function App() {
 
   const handleImportPgn = () => {
     try {
+      console.log("Attempting to import PGN:", pgnInput);
       const newGame = new Chess();
-      newGame.load_pgn(pgnInput);
+      newGame.loadPgn(pgnInput);
+      const newFen = newGame.fen();
       setGame(newGame);
-      setFen(newGame.fen());
+      setFen(newFen);
       setLastMove(null);
       setStockfishEval({ score: null, type: 'cp' });
 
-      // Rebuild the history from the imported PGN
       const history = newGame.history({ verbose: true });
-      const newMoveHistory = [new Chess().fen()]; // Start with the initial position
+      const newMoveHistory = [new Chess().fen()];
       const tempGame = new Chess();
       history.forEach(move => {
         tempGame.move(move);
@@ -283,9 +288,9 @@ function App() {
       setMoveHistory(newMoveHistory);
       setHistoryPointer(newMoveHistory.length - 1);
 
-
       toast.success('PGN imported successfully!');
       setShowPgnModal(false);
+      sendCommand(`position fen ${newFen}`);
     } catch (error) {
       toast.error('Invalid PGN string.');
       console.error('PGN import error:', error);
