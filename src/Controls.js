@@ -1,24 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import Spinner from './Spinner'; // Import the Spinner component
+import {
+  RotateCcw,
+  Repeat,
+  ChevronLeft,
+  ChevronRight,
+  Upload,
+  Download,
+  Settings,
+  Play,
+  User,
+  Cpu
+} from 'react-feather';
 
-// Reusable Icon Button Component
-const IconButton = ({ onClick, icon, text, className = '', disabled = false, isAnalyzing = false }) => (
-  <button onClick={onClick} className={`icon-button ${className}`} disabled={disabled || isAnalyzing}>
-    {isAnalyzing ? <Spinner /> : icon}
+const Section = ({ title, icon, children }) => (
+  <div className="control-section">
+    <h3 className="section-title">
+      {icon}
+      <span>{title}</span>
+    </h3>
+    <div className="section-content">{children}</div>
+  </div>
+);
+
+const IconButton = ({ onClick, icon, text, disabled = false }) => (
+  <button onClick={onClick} className="icon-button" disabled={disabled}>
+    {icon}
     <span>{text}</span>
   </button>
 );
 
-// SVG Icons for a clean, modern look
-const AnalyzeIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
-const ResetIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
-const FlipIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.6V8c0-1.1.9-2 2-2h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.4V16c0 1.1-.9 2-2 2H5"></path></svg>;
-const FenIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
-const PgnIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
-const UndoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5L5 12l7 7z"></path><path d="M19 12H5"></path></svg>;
-const RedoIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14l7-7-7-7z"></path><path d="M5 12h14"></path></svg>;
+const Toggle = ({ label, checked, onChange }) => (
+  <div className="toggle-switch">
+    <label>
+      {label}
+      <input type="checkbox" checked={checked} onChange={onChange} />
+      <span className="slider"></span>
+    </label>
+  </div>
+);
 
-const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSettings, setEngineSettings, sendCommand, onFenClick, onPgnClick, maxThreads, maxHashSize, isAutoMoveEnabled, setIsAutoMoveEnabled, userColor, setUserColor }) => {
+const Controls = ({ 
+  onReset, onFlip, onUndo, onRedo, canUndo, canRedo, 
+  engineSettings, setEngineSettings, sendCommand, 
+  onFenClick, onPgnClick, 
+  isAutoMoveEnabled, setIsAutoMoveEnabled, 
+  userColor, setUserColor 
+}) => {
   const [engines, setEngines] = useState([]);
   const [selectedEngine, setSelectedEngine] = useState('');
 
@@ -28,7 +55,7 @@ const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSet
       .then(data => {
         setEngines(data);
         if (data.length > 0) {
-          setSelectedEngine(data[0]); // Select the first engine by default
+          setSelectedEngine(data[0]);
         }
       })
       .catch(err => console.error('Error fetching engines:', err));
@@ -59,130 +86,85 @@ const Controls = ({ onReset, onFlip, onUndo, onRedo, canUndo, canRedo, engineSet
     sendCommand(`setoption name Hash value ${value}`);
   };
 
-  const handleDepthAnalysisToggle = (e) => {
-    setEngineSettings.setIsDepthAnalysisEnabled(e.target.checked);
-  };
-
   return (
     <div className="panel controls">
-      <div className="control-group">
-        <div className="button-group">
-          <IconButton onClick={onReset} icon={<ResetIcon />} text="New Game" />
-          <IconButton onClick={onFlip} icon={<FlipIcon />} text="Flip Board" />
+      <Section title="Game" icon={<Play size={20} />}>
+        <div className="button-grid">
+          <IconButton onClick={onReset} icon={<RotateCcw size={18} />} text="New" />
+          <IconButton onClick={onFlip} icon={<Repeat size={18} />} text="Flip" />
+          <IconButton onClick={onUndo} icon={<ChevronLeft size={18} />} text="Undo" disabled={!canUndo} />
+          <IconButton onClick={onRedo} icon={<ChevronRight size={18} />} text="Redo" disabled={!canRedo} />
         </div>
-      </div>
+      </Section>
 
-      <div className="control-group">
-        <div className="button-group">
-          <IconButton onClick={onUndo} icon={<UndoIcon />} text="Undo" disabled={!canUndo} />
-          <IconButton onClick={onRedo} icon={<RedoIcon />} text="Redo" disabled={!canRedo} />
+      <Section title="Position" icon={<Upload size={20} />}>
+        <div className="button-grid">
+          <IconButton onClick={onFenClick} icon={<Download size={18} />} text="FEN" />
+          <IconButton onClick={onPgnClick} icon={<Download size={18} />} text="PGN" />
         </div>
-      </div>
+      </Section>
 
-      <div className="control-group">
-        <div className="button-group">
-          <IconButton onClick={onFenClick} icon={<FenIcon />} text="FEN" />
-          <IconButton onClick={onPgnClick} icon={<PgnIcon />} text="PGN" />
+      <Section title="Player" icon={<User size={20} />}>
+        <div className="control-group">
+          <label htmlFor="userColor">Play as</label>
+          <select id="userColor" value={userColor} onChange={(e) => setUserColor(e.target.value)}>
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
         </div>
-      </div>
-
-      <div className="control-group">
-        <label htmlFor="engine-select">Chess Engine</label>
-        <select id="engine-select" value={selectedEngine} onChange={handleEngineChange}>
-          {engines.map(engine => (
-            <option key={engine} value={engine}>{engine}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="control-group">
-        <label htmlFor="userColor">Play as:</label>
-        <select
-          id="userColor"
-          value={userColor}
-          onChange={(e) => setUserColor(e.target.value)}
-        >
-          <option value="white">White</option>
-          <option value="black">Black</option>
-        </select>
-      </div>
-
-      <div className="control-group">
-        <label htmlFor="auto-move-toggle">Auto-move Opponent</label>
-        <input 
-          type="checkbox" 
-          id="auto-move-toggle"
+        <Toggle 
+          label="Auto-move Opponent"
           checked={isAutoMoveEnabled}
           onChange={(e) => setIsAutoMoveEnabled(e.target.checked)}
         />
-      </div>
+      </Section>
 
-      <div className="control-group">
-        <label htmlFor="depth-analysis-toggle">Enable Depth Analysis</label>
-        <input 
-          type="checkbox" 
-          id="depth-analysis-toggle"
-          checked={engineSettings.isDepthAnalysisEnabled}
-          onChange={handleDepthAnalysisToggle}
-        />
-      </div>
-
-      <div className="control-group">
-        <label htmlFor="movetime">Analysis Time (ms)</label>
-        <select 
-          id="movetime"
-          value={engineSettings.movetime}
-          onChange={(e) => setEngineSettings.setMovetime(parseInt(e.target.value, 10))}
-        >
-          {[1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000].map(time => (
-            <option key={time} value={time}>{time}</option>
-          ))}
-        </select>
-      </div>
-
-      {engineSettings.isDepthAnalysisEnabled && (
+      <Section title="Engine" icon={<Cpu size={20} />}>
         <div className="control-group">
-          <label htmlFor="depth">Search Depth</label>
-          <select 
-            id="depth"
-            value={engineSettings.depth}
-            onChange={(e) => setEngineSettings.setDepth(parseInt(e.target.value, 10))}
-          >
-            {[10, 15, 20, 25, 30, 35, 40].map(d => (
-              <option key={d} value={d}>{d}</option>
+          <label htmlFor="engine-select">Chess Engine</label>
+          <select id="engine-select" value={selectedEngine} onChange={handleEngineChange}>
+            {engines.map(engine => (
+              <option key={engine} value={engine}>{engine}</option>
             ))}
           </select>
         </div>
-      )}
-
-      <div className="control-group">
-        <label htmlFor="threads">CPU Threads</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <input 
-            type="range" 
-            id="threads"
-            min="1" 
-            max={engineSettings.maxThreads}
-            value={engineSettings.threads}
-            onChange={handleThreadsChange}
-            style={{ flex: 1 }}
-          />
-          <span style={{ minWidth: '20px', textAlign: 'right' }}>{engineSettings.threads}</span>
+        <Toggle 
+          label="Depth Analysis"
+          checked={engineSettings.isDepthAnalysisEnabled}
+          onChange={(e) => setEngineSettings.setIsDepthAnalysisEnabled(e.target.checked)}
+        />
+        {!engineSettings.isDepthAnalysisEnabled ? (
+          <div className="control-group">
+            <label htmlFor="movetime">Analysis Time (ms)</label>
+            <select id="movetime" value={engineSettings.movetime} onChange={(e) => setEngineSettings.setMovetime(parseInt(e.target.value, 10))}>
+              {[1000, 2000, 3000, 5000, 10000].map(time => (
+                <option key={time} value={time}>{time}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="control-group">
+            <label htmlFor="depth">Search Depth</label>
+            <select id="depth" value={engineSettings.depth} onChange={(e) => setEngineSettings.setDepth(parseInt(e.target.value, 10))}>
+              {[10, 15, 20, 25, 30].map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="control-group">
+          <label htmlFor="threads">CPU Threads: {engineSettings.threads}</label>
+          <input type="range" id="threads" min="1" max={engineSettings.maxThreads} value={engineSettings.threads} onChange={handleThreadsChange} />
         </div>
-      </div>
-
-      <div className="control-group">
-        <label htmlFor="hash">Hash Size (MB)</label>
-        <select
-          id="hash"
-          value={engineSettings.hashSize}
-          onChange={handleHashChange}
-        >
-          {[16, 32, 64, 128, 256, 512, 1024, 2048, 4096].map(size => (
-            <option key={size} value={size}>{size}</option>
-          ))}
-        </select>
-      </div>
+        <div className="control-group">
+          <label htmlFor="hash">Hash Size (MB)</label>
+          <select id="hash" value={engineSettings.hashSize} onChange={handleHashChange}>
+            {[16, 32, 64, 128, 256, 512, 1024].map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
+      </Section>
     </div>
   );
 };
