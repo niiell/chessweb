@@ -101,7 +101,14 @@ function App() {
     socket.current.on('stockfish_output', (data) => {
       console.log('Received Stockfish output:', data); // Added log
         if (data.type === 'info' && data.score) {
-          setStockfishEval({ score: data.score.value, type: data.score.type, depth: data.depth });
+          setStockfishEval({ 
+            score: data.score.value, 
+            type: data.score.type, 
+            depth: data.depth,
+            nodes: data.nodes,
+            nps: data.nps,
+            tbhits: data.tbhits
+          });
         } else if (data.type === 'bestmove') {
           console.log('Received bestmove from Stockfish:', data.move);
 

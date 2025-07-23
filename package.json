@@ -12,11 +12,12 @@
     "react": "^19.0.0",
     "react-chessboard": "^5.1.0",
     "react-dom": "^19.0.0",
+    "react-feather": "^2.0.10",
     "react-helmet": "^6.1.0",
+    "react-scripts": "^5.0.1",
     "react-toastify": "^11.0.5",
     "socket.io-client": "^4.7.5",
-    "web-vitals": "^5.0.3",
-    "react-scripts": "^5.0.1"
+    "web-vitals": "^5.0.3"
   },
   "scripts": {
     "start": "react-scripts start",

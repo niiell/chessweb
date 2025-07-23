@@ -13,6 +13,7 @@ body {
 :root {
   --bg-primary: #F0F2F5; /* Light Gray */
   --bg-secondary: #FFFFFF; /* White */
+  --bg-tertiary: #E9EBEE; /* Lighter Gray for elements */
   --text-primary: #1D2129; /* Almost Black */
   --text-secondary: #65676B; /* Medium Gray */
   --accent-primary: #3498DB; /* Bright Blue */
@@ -28,6 +29,7 @@ body {
 [data-theme='dark'] {
   --bg-primary: #18191A; /* Very Dark Gray */
   --bg-secondary: #242526; /* Dark Gray */
+  --bg-tertiary: #3A3B3C; /* Slightly lighter gray for elements */
   --text-primary: #E4E6EB; /* Light Gray */
   --text-secondary: #B0B3B8; /* Medium-Light Gray */
   --accent-primary: #5DADE2; /* Soft Blue */
