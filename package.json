@@ -10,7 +10,7 @@
     "framer-motion": "^12.23.5",
     "lodash": "^4.17.21",
     "react": "^19.0.0",
-    "react-chessboard": "^5.1.0",
+    "react-chessboard": "^5.2.0",
     "react-dom": "^19.0.0",
     "react-feather": "^2.0.10",
     "react-helmet": "^6.1.0",
