@@ -22,8 +22,8 @@ body {
   --shadow-color: rgba(0, 0, 0, 0.08);
 
   /* Chessboard Colors */
-  --board-light: #EAECEE;
-  --board-dark: #BFC9CA;
+  --board-light: #D1D5DB; /* Cool Gray 300 */
+  --board-dark: #6B7280;  /* Cool Gray 500 */
 }
 
 [data-theme='dark'] {
@@ -38,8 +38,8 @@ body {
   --shadow-color: rgba(0, 0, 0, 0.25);
 
   /* Chessboard Colors */
-  --board-light: #616A6B; /* Dark Grayish Blue */
-  --board-dark: #424949; /* Very Dark Grayish Blue */
+  --board-light: #4B5563; /* Cool Gray 600 */
+  --board-dark: #1F2937; /* Cool Gray 800 */
 }
 
 /* Modern Scrollbar */
