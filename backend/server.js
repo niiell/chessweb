@@ -114,10 +114,11 @@ function startStockfish() {
         io.emit('stockfish_status', { status: 'error', message: err.message });
     });
 
-    stockfishProcess.stdin.write('uci
-');
-    stockfishProcess.stdin.write('setoption name MultiPV value 1
-');
+    stockfishProcess.stdin.write('uci\n');
+    stockfishProcess.stdin.write('setoption name MultiPV value 1\n');
+    stockfishProcess.stdin.write('setoption name Threads value 4\n');
+    stockfishProcess.stdin.write('setoption name Hash value 128\n');
+
     console.log('[Backend] Setting Syzygy tablebase options...');
     const syzygyDir = path.join(__dirname, '../syzygy_tablebases/3-4-5 2022');
     if (fs.existsSync(syzygyDir)) {
