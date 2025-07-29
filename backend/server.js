@@ -43,28 +43,6 @@ let outputBuffer = '';
 const game = new Chess();
 let fenHistory = [];
 let candidateMoves = [];
-let fenHistoryForRepetition = [];
-let multiPVEnabled = false;
-
-function checkRepetitionAndSetMultiPV(fen) {
-    fenHistoryForRepetition.push(fen);
-    const repetitionCount = fenHistoryForRepetition.filter(f => f === fen).length;
-    if (repetitionCount >= 2 && !multiPVEnabled) {
-        stockfishProcess.stdin.write(`setoption name MultiPV value 3\n`);
-        console.log('[Backend] MultiPV enabled due to repetition.');
-        multiPVEnabled = true;
-    } else if (repetitionCount < 2 && multiPVEnabled) {
-        // Optionally disable MultiPV if repetition is broken, or keep it on
-        // For now, we'll keep it on once enabled for simplicity
-    }
-}
-
-function resetMultiPV() {
-    stockfishProcess.stdin.write(`setoption name MultiPV value 1\n`);
-    console.log('[Backend] MultiPV reset to 1.');
-    multiPVEnabled = false;
-    fenHistoryForRepetition = [];
-}
 
 function startStockfish() {
     if (!currentEnginePath) {
@@ -136,7 +114,10 @@ function startStockfish() {
         io.emit('stockfish_status', { status: 'error', message: err.message });
     });
 
-    stockfishProcess.stdin.write('uci\n');
+    stockfishProcess.stdin.write('uci
+');
+    stockfishProcess.stdin.write('setoption name MultiPV value 1
+');
     console.log('[Backend] Setting Syzygy tablebase options...');
     const syzygyDir = path.join(__dirname, '../syzygy_tablebases/3-4-5 2022');
     if (fs.existsSync(syzygyDir)) {
@@ -221,9 +202,6 @@ io.on('connection', (socket) => {
             console.log(`[Frontend] Received command: ${command}`);
             if (command.startsWith('position fen')) {
                 currentFenForAnalysis = command.substring(13);
-                checkRepetitionAndSetMultiPV(currentFenForAnalysis);
-            } else if (command === 'ucinewgame') {
-                resetMultiPV();
             }
             stockfishProcess.stdin.write(`${command}\n`);
         }
