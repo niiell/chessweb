@@ -119,11 +119,12 @@ function startStockfish() {
     stockfishProcess.stdin.write('setoption name Threads value 4\n');
     stockfishProcess.stdin.write('setoption name Hash value 128\n');
     stockfishProcess.stdin.write('setoption name NumaPolicy value auto\n');
-
+    stockfishProcess.stdin.write('setoption name UCI_ShowWDL value true\n');
+    stockfishProcess.stdin.write('setoption name UCI_Elo value 3190\n');
     console.log('[Backend] Setting Syzygy tablebase options...');
     const syzygyDir = path.join(__dirname, '../syzygy_tablebases/3-4-5 2022');
     if (fs.existsSync(syzygyDir)) {
-        const syzygyPath = path.normalize(syzygyDir).replace(/\\/g, '/');
+        const syzygyPath = syzygyDir.replace(/\\/g, '/');
         console.log(`[Backend] SyzygyPath being sent to engine: ${syzygyPath}`);
         stockfishProcess.stdin.write(`setoption name SyzygyPath value ${syzygyPath}\n`);
         // Only send SyzygyProbeDepth and Syzygy50MoveRule if the engine is Stockfish
