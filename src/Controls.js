@@ -128,11 +128,7 @@ const Controls = ({
             ))}
           </select>
         </div>
-        <Toggle 
-          label="Depth Analysis"
-          checked={engineSettings.isDepthAnalysisEnabled}
-          onChange={(e) => setEngineSettings.setIsDepthAnalysisEnabled(e.target.checked)}
-        />
+        
         {!engineSettings.isDepthAnalysisEnabled ? (
           <div className="control-group">
             <label htmlFor="movetime">Analysis Time (ms)</label>
