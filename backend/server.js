@@ -35,8 +35,8 @@ app.get('/api/engines', (req, res) => {
 });
 
 const ENGINES_DIR = path.join(__dirname, '../chessengines');
-const ALLOWED_ENGINES = fs.readdirSync(ENGINES_DIR).filter(file => file.endsWith('.exe')); // Dynamically load all .exe engines
-let currentEnginePath = ALLOWED_ENGINES.length > 0 ? path.join(ENGINES_DIR, ALLOWED_ENGINES[0]) : null; // Default engine, or null if no engines found
+const ALLOWED_ENGINES = ['stockfish_x86-64-bmi2.exe'];
+let currentEnginePath = path.join(ENGINES_DIR, 'stockfish_x86-64-bmi2.exe');
 
 let stockfishProcess;
 let outputBuffer = '';
