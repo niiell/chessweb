@@ -35,8 +35,8 @@ app.get('/api/engines', (req, res) => {
 });
 
 const ENGINES_DIR = path.join(__dirname, '../chessengines');
-const ALLOWED_ENGINES = ['stockfish_x86-64-bmi2.exe'];
-let currentEnginePath = path.join(ENGINES_DIR, 'stockfish_x86-64-bmi2.exe');
+const ALLOWED_ENGINES = ['stockfish-windows-x86-64-bmi2.exe'];
+let currentEnginePath = path.join(ENGINES_DIR, 'stockfish-windows-x86-64-bmi2.exe');
 
 let stockfishProcess;
 let outputBuffer = '';
