@@ -118,6 +118,8 @@ function App() {
           if (moveResult) {
             console.log('Bestmove applied successfully. New FEN:', gameCopy.fen());
             setFen(gameCopy.fen());
+            // Keep the main game state in sync so PGN export (game.pgn()) includes the engine move
+            setGame(gameCopy);
             setLastMove({ from: moveResult.from, to: moveResult.to });
           } else {
             console.warn('Failed to apply bestmove:', data.move);
@@ -184,6 +186,8 @@ function App() {
     const newFen = gameCopy.fen();
     setFen(newFen);
     setLastMove({ from: move.from, to: move.to });
+    // Keep the main game state in sync so PGN export (game.pgn()) includes the moves
+    setGame(gameCopy);
 
     // Update move history
     const newHistory = moveHistory.slice(0, historyPointer + 1);
