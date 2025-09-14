@@ -97,3 +97,39 @@
   border-color: var(--accent-primary);
   color: var(--accent-primary);
 }
+
+/* PGN header input styling */
+.pgn-headers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pgn-header-row {
+  display: flex;
+  gap: 8px;
+}
+.pgn-header-row input {
+  flex: 1 1 0;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.pgn-header-row input::placeholder {
+  color: var(--text-secondary);
+}
+.pgn-header-row input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.06);
+}
+
+/* Make header inputs stack on narrow screens */
+@media (max-width: 480px) {
+  .pgn-header-row {
+    flex-direction: column;
+  }
+}

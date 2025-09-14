@@ -21,6 +21,7 @@ function App() {
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
   const [moveHistory, setMoveHistory] = useState([game.fen()]); // Initialize with starting FEN
+  const [moves, setMoves] = useState([]); // SAN move list for PGN and reconstruction
   const [historyPointer, setHistoryPointer] = useState(0); // Pointer to current position in history
   const [boardOrientation, setBoardOrientation] = useState('white');
   const [userColor, setUserColor] = useState('white'); // New state for user's playing color
@@ -36,6 +37,15 @@ function App() {
   const [showPgnModal, setShowPgnModal] = useState(false);
   const [fenInput, setFenInput] = useState('');
   const [pgnInput, setPgnInput] = useState('');
+  const [pgnHeaders, setPgnHeaders] = useState({
+    Event: '?',
+    Site: '?',
+    Date: '????.??.??',
+    Round: '?',
+    White: '?',
+    Black: '?',
+    Result: '*'
+  });
 
   // Engine settings
   const [movetime, setMovetime] = useState(1000);
@@ -120,6 +130,8 @@ function App() {
             setFen(gameCopy.fen());
             // Keep the main game state in sync so PGN export (game.pgn()) includes the engine move
             setGame(gameCopy);
+            // Append SAN to moves list if available
+            if (moveResult.san) setMoves(prev => [...prev, moveResult.san]);
             setLastMove({ from: moveResult.from, to: moveResult.to });
           } else {
             console.warn('Failed to apply bestmove:', data.move);
@@ -188,6 +200,8 @@ function App() {
     setLastMove({ from: move.from, to: move.to });
     // Keep the main game state in sync so PGN export (game.pgn()) includes the moves
     setGame(gameCopy);
+    // Append SAN to moves list
+    if (move.san) setMoves(prev => [...prev, move.san]);
 
     // Update move history
     const newHistory = moveHistory.slice(0, historyPointer + 1);
@@ -202,10 +216,14 @@ function App() {
     if (historyPointer > 0) {
       const newPointer = historyPointer - 1;
       const newFen = moveHistory[newPointer];
-      const newGame = new Chess(newFen);
+      // Rebuild game from initial position and apply moves up to newPointer
+      const newGame = new Chess();
+      const movesToApply = moves.slice(0, newPointer);
+      movesToApply.forEach(m => newGame.move(m, { sloppy: true }));
       setHistoryPointer(newPointer);
-      setFen(newFen);
+      setFen(newGame.fen());
       setGame(newGame);
+      setMoves(movesToApply);
       setLastMove(null); // Clear last move on undo
       sendCommand(`position fen ${newFen}`);
     } else {
@@ -217,10 +235,14 @@ function App() {
     if (historyPointer < moveHistory.length - 1) {
       const newPointer = historyPointer + 1;
       const newFen = moveHistory[newPointer];
-      const newGame = new Chess(newFen);
+      // Rebuild game from initial position and apply moves up to newPointer
+      const newGame = new Chess();
+      const movesToApply = moves.slice(0, newPointer);
+      movesToApply.forEach(m => newGame.move(m, { sloppy: true }));
       setHistoryPointer(newPointer);
-      setFen(newFen);
+      setFen(newGame.fen());
       setGame(newGame);
+      setMoves(movesToApply);
       setLastMove(null); // Clear last move on redo
       sendCommand(`position fen ${newFen}`);
     } else {
@@ -233,6 +255,7 @@ function App() {
     const initialFen = newGame.fen();
     setGame(newGame);
     setFen(initialFen);
+    setMoves([]);
     setLastMove(null);
     setStockfishEval({ score: null, type: 'cp' });
     setMoveHistory([initialFen]);
@@ -249,14 +272,67 @@ function App() {
   };
 
   const handlePgnClick = () => {
-    setPgnInput(game.pgn());
+    try {
+      // Build PGN with headers
+      const buildPGN = (headers, movesArray) => {
+        const headerLines = Object.entries(headers).map(([k, v]) => `[${k} "${v}"]`).join('\n');
+        const exportGame = new Chess();
+        (movesArray || []).forEach(m => exportGame.move(m, { sloppy: true }));
+        const movesStr = exportGame.pgn();
+        return `${headerLines}\n\n${movesStr}`.trim();
+      };
+
+      const pgnStr = buildPGN(pgnHeaders, moves.length > 0 ? moves : game.history());
+      setPgnInput(pgnStr);
+    } catch (e) {
+      console.error('PGN export error:', e);
+      setPgnInput(game.pgn());
+    }
     setShowPgnModal(true);
   };
 
-  const handleCopyFen = () => {
-    navigator.clipboard.writeText(fenInput);
-    toast.success('FEN copied to clipboard!');
-    setShowFenModal(false);
+  const handleCopyPgn = () => {
+    navigator.clipboard.writeText(pgnInput);
+    toast.success('PGN copied to clipboard!');
+    setShowPgnModal(false);
+  };
+
+  const handleDownloadPgn = () => {
+    try {
+      // Build a friendly filename: YYYY-MM-DD_White_vs_Black.pgn
+      const sanitize = (s) => {
+        if (!s) return '';
+        return s.replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+      };
+
+      // Use header Date if valid (not placeholder containing '?'), else use today's date
+      let datePart = '';
+      if (pgnHeaders.Date && !pgnHeaders.Date.includes('?')) {
+        // Normalize separators to hyphen
+        datePart = pgnHeaders.Date.replace(/\./g, '-').replace(/\//g, '-');
+      } else {
+        const d = new Date();
+        datePart = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      }
+
+      const white = sanitize(pgnHeaders.White) || 'White';
+      const black = sanitize(pgnHeaders.Black) || 'Black';
+      const filename = `${datePart}_${white}_vs_${black}.pgn`;
+
+      const blob = new Blob([pgnInput], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`PGN downloaded: ${filename}`);
+    } catch (e) {
+      console.error('Download PGN error:', e);
+      toast.error('Failed to download PGN');
+    }
   };
 
   const handleImportFen = () => {
@@ -278,12 +354,6 @@ function App() {
     }
   };
 
-  const handleCopyPgn = () => {
-    navigator.clipboard.writeText(pgnInput);
-    toast.success('PGN copied to clipboard!');
-    setShowPgnModal(false);
-  };
-
   const handleImportPgn = () => {
     try {
       console.log("Attempting to import PGN:", pgnInput);
@@ -292,6 +362,9 @@ function App() {
       const newFen = newGame.fen();
       setGame(newGame);
       setFen(newFen);
+      // Extract SAN history and store in moves
+      const pgnMoves = newGame.history();
+      setMoves(pgnMoves);
       setLastMove(null);
       setStockfishEval({ score: null, type: 'cp' });
 
@@ -395,6 +468,19 @@ function App() {
       </Modal>
 
       <Modal isOpen={showPgnModal} onClose={() => setShowPgnModal(false)} title="PGN">
+        <div className="pgn-headers">
+          <div className="pgn-header-row">
+            <input value={pgnHeaders.Event} onChange={(e) => setPgnHeaders(h => ({...h, Event: e.target.value}))} placeholder="Event" />
+            <input value={pgnHeaders.Site} onChange={(e) => setPgnHeaders(h => ({...h, Site: e.target.value}))} placeholder="Site" />
+            <input value={pgnHeaders.Date} onChange={(e) => setPgnHeaders(h => ({...h, Date: e.target.value}))} placeholder="Date" />
+          </div>
+          <div className="pgn-header-row">
+            <input value={pgnHeaders.Round} onChange={(e) => setPgnHeaders(h => ({...h, Round: e.target.value}))} placeholder="Round" />
+            <input value={pgnHeaders.White} onChange={(e) => setPgnHeaders(h => ({...h, White: e.target.value}))} placeholder="White" />
+            <input value={pgnHeaders.Black} onChange={(e) => setPgnHeaders(h => ({...h, Black: e.target.value}))} placeholder="Black" />
+            <input value={pgnHeaders.Result} onChange={(e) => setPgnHeaders(h => ({...h, Result: e.target.value}))} placeholder="Result" />
+          </div>
+        </div>
         <textarea
           rows="10"
           value={pgnInput}
@@ -404,6 +490,7 @@ function App() {
         <div className="button-group">
           <button className="button-secondary" onClick={handleCopyPgn}>Copy</button>
           <button className="button-primary" onClick={handleImportPgn}>Import</button>
+          <button className="button-secondary" onClick={handleDownloadPgn}>Download .pgn</button>
         </div>
       </Modal>
     </div>
