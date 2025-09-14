@@ -47,9 +47,7 @@
   color: var(--accent-primary);
 }
 
-.modal-body {
-  /* Add specific styling for input fields, buttons within the modal body */
-}
+/* Add specific styling for input fields, buttons within the modal body */
 
 .modal-body input[type="text"],
 .modal-body textarea {
