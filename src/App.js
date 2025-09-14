@@ -354,6 +354,18 @@ function App() {
     }
   };
 
+  // Add handler to copy current FEN to clipboard (was missing)
+  const handleCopyFen = () => {
+    try {
+      navigator.clipboard.writeText(fenInput || game.fen());
+      toast.success('FEN copied to clipboard!');
+      setShowFenModal(false);
+    } catch (e) {
+      console.error('Copy FEN failed:', e);
+      toast.error('Failed to copy FEN');
+    }
+  };
+
   const handleImportPgn = () => {
     try {
       console.log("Attempting to import PGN:", pgnInput);
