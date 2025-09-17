@@ -40,7 +40,7 @@ function App() {
   const [pgnHeaders, setPgnHeaders] = useState({
     Event: '?',
     Site: '?',
-    Date: '????.??.??',
+    Date: new Date().toISOString().slice(0,10).replace(/-/g, '.'), // default to today's date YYYY.MM.DD
     Round: '?',
     White: '?',
     Black: '?',
@@ -278,7 +278,9 @@ function App() {
         const headerLines = Object.entries(headers).map(([k, v]) => `[${k} "${v}"]`).join('\n');
         const exportGame = new Chess();
         (movesArray || []).forEach(m => exportGame.move(m, { sloppy: true }));
-        const movesStr = exportGame.pgn();
+        let movesStr = exportGame.pgn();
+        // Remove any existing header block to avoid duplicating headers
+        movesStr = movesStr.replace(/^(?:\[.*\]\s*)+/g, '').trim();
         return `${headerLines}\n\n${movesStr}`.trim();
       };
 
@@ -286,7 +288,20 @@ function App() {
       setPgnInput(pgnStr);
     } catch (e) {
       console.error('PGN export error:', e);
-      setPgnInput(game.pgn());
+      // Fallback: build PGN from current headers and game history to avoid duplicate headers
+      try {
+        const fallbackPGN = (() => {
+          const headerLines = Object.entries(pgnHeaders).map(([k, v]) => `[${k} "${v}"]`).join('\n');
+          const g = new Chess();
+          (game.history() || []).forEach(m => g.move(m, { sloppy: true }));
+          const movesOnly = g.pgn().replace(/^(?:\[.*\]\s*)+/g, '').trim();
+          return `${headerLines}\n\n${movesOnly}`.trim();
+        })();
+        setPgnInput(fallbackPGN);
+      } catch (e2) {
+        // As a last resort, set raw game.pgn()
+        setPgnInput(game.pgn());
+      }
     }
     setShowPgnModal(true);
   };
@@ -374,12 +389,14 @@ function App() {
       const newFen = newGame.fen();
       setGame(newGame);
       setFen(newFen);
+
       // Extract SAN history and store in moves
       const pgnMoves = newGame.history();
       setMoves(pgnMoves);
       setLastMove(null);
       setStockfishEval({ score: null, type: 'cp' });
 
+      // Build move history (FENs after each move)
       const history = newGame.history({ verbose: true });
       const newMoveHistory = [new Chess().fen()];
       const tempGame = new Chess();
@@ -389,6 +406,24 @@ function App() {
       });
       setMoveHistory(newMoveHistory);
       setHistoryPointer(newMoveHistory.length - 1);
+
+      // Parse PGN headers from pgnInput and update pgnHeaders state
+      try {
+        const headerRegex = /^\s*\[([^\s]+)\s+"([^"]*)"\]/gm;
+        const parsedHeaders = { ...pgnHeaders };
+        let m;
+        const today = new Date().toISOString().slice(0,10).replace(/-/g, '.');
+        while ((m = headerRegex.exec(pgnInput)) !== null) {
+          const key = m[1];
+          const val = m[2];
+          if (key) parsedHeaders[key] = val || (key === 'Date' ? today : '?');
+        }
+        // Ensure Date is set to today's date if missing
+        if (!parsedHeaders.Date || parsedHeaders.Date.includes('?')) parsedHeaders.Date = today;
+        setPgnHeaders(parsedHeaders);
+      } catch (hdrErr) {
+        console.warn('Failed to parse PGN headers:', hdrErr);
+      }
 
       toast.success('PGN imported successfully!');
       setShowPgnModal(false);
