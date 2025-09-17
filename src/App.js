@@ -215,16 +215,44 @@ function App() {
   const undoMove = () => {
     if (historyPointer > 0) {
       const newPointer = historyPointer - 1;
-      const newFen = moveHistory[newPointer];
-      // Rebuild game from initial position and apply moves up to newPointer
       const newGame = new Chess();
       const movesToApply = moves.slice(0, newPointer);
-      movesToApply.forEach(m => newGame.move(m, { sloppy: true }));
+      
+      // Apply moves one by one to maintain proper game state
+      movesToApply.forEach(move => {
+        try {
+          newGame.move(move);
+        } catch (err) {
+          console.error('Error applying move during undo:', move, err);
+        }
+      });
+
+      const newFen = newGame.fen();
+      
+      // Get the last move that was undone to clear visual highlights
+      const lastMove = moves[newPointer];
+      let lastMoveSquares = null;
+      
+      if (lastMove) {
+        try {
+          const tempGame = new Chess(moveHistory[newPointer]);
+          const moveObj = tempGame.move(lastMove, { sloppy: true });
+          if (moveObj) {
+            lastMoveSquares = { from: moveObj.from, to: moveObj.to };
+          }
+        } catch (err) {
+          console.error('Error getting last move squares:', err);
+        }
+      }
+
       setHistoryPointer(newPointer);
-      setFen(newGame.fen());
+      setFen(newFen);
       setGame(newGame);
       setMoves(movesToApply);
-      setLastMove(null); // Clear last move on undo
+      setLastMove(lastMoveSquares);
+      
+      // Update engine
+      sendCommand('ucinewgame');
       sendCommand(`position fen ${newFen}`);
     } else {
       toast.info('No moves to undo.');
@@ -234,16 +262,44 @@ function App() {
   const redoMove = () => {
     if (historyPointer < moveHistory.length - 1) {
       const newPointer = historyPointer + 1;
-      const newFen = moveHistory[newPointer];
-      // Rebuild game from initial position and apply moves up to newPointer
       const newGame = new Chess();
       const movesToApply = moves.slice(0, newPointer);
-      movesToApply.forEach(m => newGame.move(m, { sloppy: true }));
+      
+      // Apply moves one by one to maintain proper game state
+      movesToApply.forEach(move => {
+        try {
+          newGame.move(move);
+        } catch (err) {
+          console.error('Error applying move during redo:', move, err);
+        }
+      });
+
+      const newFen = newGame.fen();
+      
+      // Get the last move that was redone to show visual highlights
+      const lastMove = moves[newPointer - 1];
+      let lastMoveSquares = null;
+      
+      if (lastMove) {
+        try {
+          const tempGame = new Chess(moveHistory[newPointer - 1]);
+          const moveObj = tempGame.move(lastMove, { sloppy: true });
+          if (moveObj) {
+            lastMoveSquares = { from: moveObj.from, to: moveObj.to };
+          }
+        } catch (err) {
+          console.error('Error getting last move squares:', err);
+        }
+      }
+
       setHistoryPointer(newPointer);
-      setFen(newGame.fen());
+      setFen(newFen);
       setGame(newGame);
       setMoves(movesToApply);
-      setLastMove(null); // Clear last move on redo
+      setLastMove(lastMoveSquares);
+      
+      // Update engine
+      sendCommand('ucinewgame');
       sendCommand(`position fen ${newFen}`);
     } else {
       toast.info('No moves to redo.');
